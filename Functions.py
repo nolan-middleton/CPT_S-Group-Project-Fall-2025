@@ -169,6 +169,40 @@ def F1(M):
     '''
     return 2*M[1,1]/(2*M[1,1] + M[1,0] + M[0,1])
 
+def evaluate(M):
+    '''
+    Generates a dictionary of all the model's performance statistics that can
+    be easily JSON-serialized.
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The model's confusion matrix.
+
+    Returns
+    -------
+    dict containing the model evaluation statistics.
+    '''
+    
+    # The Python JSON library doesn't play nicely with the numpy data types,
+    # so I've found it's better to just explicitly convert any data you want
+    # to save in JSON files to the regular Python data types. -Nolan
+    return {
+        "accuracy": float(accuracy(M)),
+        "sensitivity": float(sensitivity(M)),
+        "specificity": float(specificity(M)),
+        "precision": float(precision(M)),
+        "NPV": float(NPV(M)),
+        "F1": float(F1(M)),
+        "phi": float(phi(M)),
+        "confusion_matrix": {
+            "TP": int(M[1,1]),
+            "TN": int(M[0,0]),
+            "FP": int(M[1,0]),
+            "FN": int(M[0,1])
+        }
+    }
+
 def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
     '''
     Performs leave-one-out validation to measure the performance of a model.
