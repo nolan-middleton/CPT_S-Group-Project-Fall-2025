@@ -14,7 +14,13 @@ import sklearn.tree as tree
 def confusion_matrix(Y_hat, Y):
     '''
     Generates a 2x2 array representing the confusion matrix.
-
+     |N  P <-- Actual
+    -+-----
+    N|TN FN
+    P|FP TP
+    ^
+    Guesses
+    
     Parameters
     ----------
     Y_hat : np.ndarray of int
@@ -33,6 +39,135 @@ def confusion_matrix(Y_hat, Y):
     M[1,0] = np.sum((Y_hat == 1) & (Y == 0))
     M[1,1] = np.sum((Y_hat == 1) & (Y == 1))
     return M
+
+def accuracy(M):
+    '''
+    Computes the accuracy from a confusion matrix.
+    (TP + TN) / (TP + FP + TN + FN)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the accuracy.
+    '''
+    return np.trace(M) / np.sum(M)
+
+def sensitivity(M):
+    '''
+    Computes the sensitivity from a confusion matrix.
+    TP / (TP + FN)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the sensitivity.
+    '''
+    return M[1,1] / np.sum(M[:,1])
+
+TPR = sensitivity
+recall = sensitivity
+
+FPR = lambda M : 1 - sensitivity(M)
+
+def specificity(M):
+    '''
+    Computes the specificity from a confusion matrix.
+    TN / (TN + FP)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the specificity.
+    '''
+    return M[0,0] / np.sum(M[:,0])
+
+TNR = specificity
+FNR = lambda M : 1 - specificity(M)
+
+def precision(M):
+    '''
+    Computes the precision from a confusion matrix.
+    TP / (TP + FP)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the precision.
+    '''
+    return M[1,1] / np.sum(M[1,:])
+
+PPV = precision
+
+FDR = lambda M : 1 - precision(M)
+
+def NPV(M):
+    '''
+    Computes the negative predictive value from a confusion matrix.
+    TN / (TN + FN)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the negative predictive value.
+    '''
+    return M[0,0] / np.sum(M[0,:])
+
+FOR = lambda M : 1 - NPV(M)
+
+def phi(M):
+    '''
+    Computes the phi coefficient from a confusion matrix.
+    sqrt(TPR*TNR*PPV*NPV) - sqrt(FNR*FPR*FOR*FDR)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the phi coefficient.
+    '''
+    return np.sqrt(TPR(M)*TNR(M)*PPV(M)*NPV(M)) - \
+        np.sqrt(FNR(M)*FPR(M)*FOR(M)*FDR(M))
+
+MCC = phi
+
+def F1(M):
+    '''
+    Computes the F1 score from a confusion matrix.
+    2TP/(2TP+FP+FN)
+
+    Parameters
+    ----------
+    M : np.ndarray of int
+        The confusion matrix. Must have shape (2,2).
+
+    Returns
+    -------
+    float representing the F1 score.
+    '''
+    return 2*M[1,1]/(2*M[1,1] + M[1,0] + M[0,1])
 
 def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
     '''
