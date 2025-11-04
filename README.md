@@ -61,6 +61,7 @@ So, in the end, we would have a lot of data to talk about and discuss in the pap
 <table>
 	<tr>
 		<th></th>
+		<th></th>
 		<th colspan="5"> Strategies to Combat High Dimensionality</th>
 	</tr>
     <tr>
