@@ -224,7 +224,7 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     *args :
         Passed to train_f.
     **kwargs :
-        Passed to test_f.
+        Passed to train_f.
 
     Returns
     -------
@@ -240,6 +240,37 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
         
         model = train_f(this_X, this_Y, *args, **kwargs)
         M += confusion_matrix(model.predict(X[i:(i+1),:]), Y[i:(i+1)])
+    return evaluate(M)
+
+def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
+    '''
+    Performs regular validation on the dataset with a separate test set.
+
+    Parameters
+    ----------
+    train_f : function
+        The function to train the model with. Must take in X and Y as its first
+        two arguments, then any other *args and **kwargs. Must return a model
+        that has the .predict() method.
+    train_X : np.ndarray of float
+        The training dataset. Each ROW must be a data point.
+    train_Y : np.ndarray of int
+        The training labels.
+    test_X : np.ndarray of float
+        The testing dataset. Each ROW must be a data point.
+    test_Y : np.ndarray of int
+        The testing labels.
+    *args :
+        passed to train_f.
+    **kwargs :
+        passed to train_f.
+
+    Returns
+    -------
+    dict of evaluation statistics.
+    '''
+    model = train_f(train_X, train_Y, *args, **kwargs)
+    M = confusion_matrix(model.predict(test_X), test_Y)
     return evaluate(M)
 
 #%%% Training Models
