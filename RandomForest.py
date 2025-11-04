@@ -1,12 +1,13 @@
 #%% Setup
 
-from Functions import train_decision_tree, leave_one_out_validation, \
+from Functions import train_random_forest, leave_one_out_validation, \
     regular_validation
 import numpy as np
 import sys as sys
 import json as json
 
 depths = [1,2,3,4,5,6] # The max_depths to test
+n_estimators = [100] + [500 * n for n in range(1,10)] # n_estimators to test
 
 #%%% Command-Line Arguments
 
@@ -36,27 +37,32 @@ if (len(sys.argv) > 3):
 
 #%% Performing the evaluation
 
-print("> Decision Tree on X: " + str(np.shape(training_X)) + "...")
+print("> Random Forest on X: " + str(np.shape(training_X)) + "...")
 results = {}
 
 for depth in depths:
     print(">> Depth = " + str(depth) + "...")
-    if (do_regular_validation):
-        results[str(depth)] = regular_validation(
-            train_decision_tree,
-            training_X,
-            training_Y,
-            testing_X,
-            testing_Y,
-            max_depth = depth
-        )
-    else:
-        results[str(depth)] = leave_one_out_validation(
-            train_decision_tree,
-            training_X,
-            training_Y,
-            max_depth = depth
-        )
+    results[str(depth)] = {}
+    for n_estimator in n_estimators:
+        print(">>> Number of Estimators: " + str(n_estimator) + "...")
+        if (do_regular_validation):
+            results[str(depth)][str(n_estimator)] = regular_validation(
+                train_random_forest,
+                training_X,
+                training_Y,
+                testing_X,
+                testing_Y,
+                max_depth = depth,
+                n_estimators = n_estimator
+            )
+        else:
+            results[str(depth)][str(n_estimator)] = leave_one_out_validation(
+                train_random_forest,
+                training_X,
+                training_Y,
+                max_depth = depth,
+                n_estimators = n_estimator
+            )
 
 #%% Outputting
 
