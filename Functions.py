@@ -5,7 +5,11 @@
 
 # Imports
 import numpy as np
-import sklearn.tree as tree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
 
 #%% Function Definitions
 
@@ -203,7 +207,7 @@ def evaluate(M):
         }
     }
 
-def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
+def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     '''
     Performs leave-one-out validation to measure the performance of a model.
 
@@ -212,11 +216,7 @@ def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
     train_f : function
         The function to train the model with. Must take in X and Y as its first
         two arguments, then any other *args and **kwargs. Must return a model
-        that is passed to test_f.
-    test_f : function
-        The function to evaluate the model with. Must take in a model (the
-        output of train_f) as its first argument, then X, then Y. Must return
-        a 2x2 confusion matrix.
+        that has the .predict() method.
     X : np.ndarray of float
         The dataset. Each ROW must be a data point.
     Y : np.ndarray of int
@@ -228,7 +228,7 @@ def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
 
     Returns
     -------
-    np.ndarray representing an aggregate confusion matrix.
+    dict of evaluation statistics.
     '''
     n = np.shape(X)[0]
     I = np.arange(n)
@@ -239,10 +239,10 @@ def leave_one_out_validation(train_f, test_f, X, Y, *args, **kwargs):
         this_Y = Y[keep]
         
         model = train_f(this_X, this_Y, *args, **kwargs)
-        M += test_f(model, X[i:(i+1),:], Y[i:(i+1)])
-    return M
+        M += confusion_matrix(model.predict(X[i:(i+1),:]), Y[i:(i+1)])
+    return evaluate(M)
 
-#%%% Models
+#%%% Training Models
 
 def train_decision_tree(X, Y, max_depth = 6):
     '''
@@ -262,29 +262,110 @@ def train_decision_tree(X, Y, max_depth = 6):
     -------
     DecisionTreeClassifier trained on the supplied data.
     '''
-    DT = tree.DecisionTreeClassifier(
+    DT = DecisionTreeClassifier(
         criterion = "entropy",
         max_depth = max_depth
     )
     DT.fit(X, Y)
-    
     return DT
 
-def test_decision_tree(DT, X, Y):
+def train_random_forest(X, Y, n_estimators = 100, max_depth = 6):
     '''
-    Evaluates a pretrained decision tree on testing data.
+    Trains a random forest on a given dataset with given labels.
 
     Parameters
     ----------
-    DT : DecisionTreeClassifier
-        The trained decision tree.
     X : np.ndarray of float
-        The testing data to evaluate the tree on.
+        The training data. Each ROW must be a data point.
     Y : np.ndarray of int
-        The labels for the testing data.
+        The training labels. The entry at index i must be the label for the
+        training data point in X at row i.
+    n_estimators : int, optional
+        The number of estimators to use in the classifier. The default is 100.
+    max_depth : int, optional
+        The maximum depth to allow the classifier to reach. The default is 6.
 
     Returns
     -------
-    np.ndarray representing the confusion matrix.
+    RandomForestClassifier trained on the supplied data.
     '''
-    return confusion_matrix(DT.predict(X), Y)
+    RF = RandomForestClassifier(
+        n_estimators = n_estimators,
+        criterion = "entropy",
+        max_depth = max_depth
+    )
+    RF.fit(X, Y)
+    return RF
+
+def train_naive_bayes(X, Y, priors = None):
+    '''
+    Trains a naive Bayes classifier on a given dataset with given labels.
+
+    Parameters
+    ----------
+    X : np.ndarray of float
+        The training data. Each ROW must be a data point.
+    Y : np.ndarray of int
+        The training labels. The entry at index i must be the label for the
+        training data point in X at row i.
+    priors : np.ndarray of float, optional
+        The prior probabilities of each class, stored in an array. Defaults
+        to None.
+
+    Returns
+    -------
+    GaussianNB trained on the supplied data.
+    '''
+    NBC = GaussianNB(priors = priors)
+    NBC.fit(X, Y)
+    return NBC
+
+def train_support_vector_machine(X, Y, C = 1.0, kernel = "rbf", degree = 1):
+    '''
+    Trains a support vector machine on a given dataset with given labels.
+
+    Parameters
+    ----------
+    X : np.ndarray of float
+        The training data. Each ROW must be a data point.
+    Y : np.ndarray of int
+        The training labels. The entry at index i must be the label for the
+        training data point in X at row i.
+    C : float, optional
+        The regularization parameter for the SVC. Defaults to 1.0.
+    kernel : string, optional
+        The kernel to use when training. Defaults to "rbf".
+    degree : int, optional
+        The degree of the kernel if the kernel is "poly".
+
+    Returns
+    -------
+    SVC trained on the supplied data.
+    '''
+    SVM = SVC(C = C, kernel = kernel, degree = degree)
+    SVM.fit(X, Y)
+    return SVM
+
+def train_k_nearest_neighbours(X, Y, k = 3, p = 2):
+    '''
+    Trains a support vector machine on a given dataset with given labels.
+
+    Parameters
+    ----------
+    X : np.ndarray of float
+        The training data. Each ROW must be a data point.
+    Y : np.ndarray of int
+        The training labels. The entry at index i must be the label for the
+        training data point in X at row i.
+    k : int, optional
+        The number of neighbours to consider near. Defaults to 3.
+    p : float, optional
+        The power of the Minkowski distance. Defaults to 2.
+
+    Returns
+    -------
+    KNeighborsClassifier trained on the supplied data.
+    '''
+    kNN = KNeighborsClassifier(n_neighbors = k, p = p)
+    kNN.fit(X, Y)
+    return kNN
