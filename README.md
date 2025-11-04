@@ -1,3 +1,7 @@
+<style>
+    	td {text-align: center}
+    </style>
+
 # Dataset
 
 **Name:** Macular degeneration and dermal fibroblast response to sublethal oxidative stress.
@@ -54,11 +58,46 @@ We could generate new data points by sampling random points from the VAE. Becaus
 # Expected Results
 So, in the end, we would have a lot of data to talk about and discuss in the paper. We’re going to be comparing 5 different strategies for combatting the high dimensionality (columns) and 3 strategies for combatting the low number of data points (rows), resulting in 5×3=15 different combinations. For each combination, we’d be testing all 5 models.
 
-    |  1  |  2  |  3  |  4  |  5
----:|:---:|:---:|:---:|:---:|:---:
- a  | 1a  | 2a  | 3a  | 4a  | 5a
- b  | 1b  | 2b  | 3b  | 4b  | 5b
- c  | 1c  | 2c  | 3c  | 4c  | 5c
+<table>
+	<tr>
+		<th></th>
+		<th colspan="5"> Strategies to Combat High Dimensionality</th>
+	</tr>
+    <tr>
+      	<td style="border-bottom:1px solid black"></td>
+      	<td style="border-bottom:1px solid black;border-right:1px solid black"></td>
+        <td style="border-bottom:1px solid black">1</td>
+        <td style="border-bottom:1px solid black">2</td>
+        <td style="border-bottom:1px solid black">3</td>
+        <td style="border-bottom:1px solid black">4</td>
+        <td style="border-bottom:1px solid black">5</td>
+  	</tr>
+	<tr>
+		<th rowspan="3", style="text-align:right">Strategies to Combat Low Number of Data Points</th>
+		<td style="border-right:1px solid black;text-align:right">a</td>
+		<td>1a</td>
+		<td>2a</td>
+		<td>3a</td>
+		<td>4a</td>
+		<td>5a</td>
+	</tr>
+	<tr>
+		<td style="border-right:1px solid black;text-align:right">b</td>
+		<td>1b</td>
+		<td>2b</td>
+		<td>3b</td>
+		<td>4b</td>
+		<td>5b</td>
+	</tr>
+	<tr>
+		<td style="border-right:1px solid black;text-align:right">c</td>
+		<td>1c</td>
+		<td>2c</td>
+		<td>3c</td>
+		<td>4c</td>
+		<td>5c</td>
+	</tr>
+</table>
 
 So, each cell of this table corresponds to a different, modified dataset that has been transformed/augmented in some way with some combination of strategies to combat the high dimensionality and low number of data points. For each of these strategy combinations, we’d train and evaluate all 5 models. This means we’ll train and evaluate the DT, RF, NBC, SVM, and k-NN with 1a, then we’d do it again with 1b, and so on. We’d be training and evaluating 5×15=75 models.
 
