@@ -1,7 +1,3 @@
-<style>
-    	td {text-align: center}
-    </style>
-
 # Dataset
 
 **Name:** Macular degeneration and dermal fibroblast response to sublethal oxidative stress.
@@ -25,10 +21,10 @@ The primary challenges posed by this dataset (and many biological datasets) are 
 The high dimensionality of the dataset poses numerous problems (the “curse of dimensionality”) especially given how few data points we have.
 
 ### Strategy 1: Do nothing
-One way of dealing with any problem is to just ignore it. This could provide us with a good base point to compare performance with. We should anticipate that the results will be pretty bad, and this would give us an opportunity to discuss the issues with using the dataset as-is. While the DT and RF may not be as affected by the high dimension, the NBC, SVM, and k-NN will all likely suffer from the high dimension.
+One way of dealing with any problem is to just ignore it. This could provide us with a good base point to compare performance with. We should anticipate that the results will be pretty bad, and this would give us an opportunity to discuss the issues with using the dataset as-is. While the DT and RF may not be as affected by the high dimension, the NBC, SVM, and *k*-NN will all likely suffer from the high dimension.
 
 ### Strategy 2: Data Grouping
-Since we’re working in a biological system, we could group related genes together using a priori biological knowledge (i.e. GO categories, which are provided in the SOFT file for the dataset). This would reduce the dimension from expression of individual genes to average expression of gene sets/pathways. We could see how the algorithms perform on the reduced dimension of the dataset. To do this aggregation, we could probably take the mean (arithmetic or geometric) of the values for each data point corresponding to each gene in the category.
+Since we’re working in a biological system, we could group related genes together using *a priori* biological knowledge (i.e. GO categories, which are provided in the SOFT file for the dataset). This would reduce the dimension from expression of individual genes to average expression of gene sets/pathways. We could see how the algorithms perform on the reduced dimension of the dataset. To do this aggregation, we could probably take the mean (arithmetic or geometric) of the values for each data point corresponding to each gene in the category.
 
 ### Strategy 3: Dimensionality Reduction
 Another strategy to combat the absurdly high dimension is to use Principle Component Analysis (PCA) to reduce the number of dimensions to something more manageable, then train the algorithms on the dataset in the subspace.
