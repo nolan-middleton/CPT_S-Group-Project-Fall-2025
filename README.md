@@ -45,10 +45,7 @@ We could discuss the impracticality of doing an 80-20 split, since we’d then o
 
 So, we’d go with leave-one-out validation. However, this poses a problem for methods like the DT and RF, since, without a validation set, we’d need to just prune the tree at some prespecified depth, which is difficult to prescribe ahead of time.
 
-### Strategy b: Bootstrapping
-We could augment the dataset by bootstrapping, forming a committee for each model on a very large (bootstrapped) dataset.
-
-### Strategy c: Simulated Data
+### Strategy b: Simulated Data
 We could generate new data points by sampling random points from the VAE. Because the VAE encodes points in a generalizable way, sampling from the representation space and decoding back to the data space should give us data points similar to the points in the original dataset. We can then train on this augmented dataset. In this case, maybe we could reserve the original dataset for testing/validation (I’m not sure how sensible that would be, since we’re using the dataset to generate the encoding in the first place)?
 
 # Expected Results
@@ -85,14 +82,6 @@ So, in the end, we would have a lot of data to talk about and discuss in the pap
 		<td>3b</td>
 		<td>4b</td>
 		<td>5b</td>
-	</tr>
-	<tr>
-		<td style="border-right:1px solid black;text-align:right">c</td>
-		<td>1c</td>
-		<td>2c</td>
-		<td>3c</td>
-		<td>4c</td>
-		<td>5c</td>
 	</tr>
 </table>
 
