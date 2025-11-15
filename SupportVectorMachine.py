@@ -14,9 +14,9 @@ training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
 )
 
 # Parameters
-kernels = ["rbf", "poly", "poly", "poly", "poly"]
-degrees = [0, 1, 2, 3, 4]
-Cs = [1E-5 * 10**i for i in range(11)]
+kernels = ["rbf", "poly", "poly", "poly"]
+degrees = [0, 1, 2, 3]
+Cs = [1E-3 * 10**i for i in range(7)]
 
 #%% Performing the Evaluation
 

@@ -14,8 +14,8 @@ training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
 )
 
 # Parameters
-depths = [1,2,3,4,5,6] # The max_depths to test
-n_estimators = [100] + [500 * n for n in range(1,10)] # n_estimators to test
+depths = [1,2,3,4] # The max_depths to test
+n_estimators = [100] + [1000 * n for n in range(1,5)] # n_estimators to test
 
 #%% Performing the Evaluation
 

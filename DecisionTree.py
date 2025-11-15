@@ -14,7 +14,7 @@ training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
 )
 
 # Parameters
-depths = [1,2,3,4,5,6] # The max_depths to test
+depths = [1,2,3,4] # The max_depths to test, 2^4 is already 16 buckets
 
 #%% Performing the Evaluation
 

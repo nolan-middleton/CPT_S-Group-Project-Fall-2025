@@ -14,7 +14,7 @@ training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
 )
 
 # Parameters
-ks = [3,4,5,6]
+ks = [3,4,5]
 ps = [1,2,3,4]
 
 #%% Performing the Evaluation
