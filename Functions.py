@@ -10,7 +10,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
-import sys as sys
 import os as os
 import numpy.char as ch
 
@@ -167,54 +166,64 @@ def reformat_data(raw_GDS_filename, output_folder):
     print("~~~ Reformatted Data ~~~")
     return subsets
 
-def get_command_line_args():
+def setup_model(directory):
     '''
-    Command-line arguments are, IN ORDER:
-    -------------------------------------
-    training_X : filename, MANDATORY
-        The name of the file with the training dataset.
-    training_Y : filename, MANDATORY
-        The name of the file with the training labels.
-    out_file : .json filename, MANDATORY
-        The name of the JSON file to dump the output.
-    testing_X1 : filename, OPTIONAL
-        The name of the file with the 1st testing dataset. If omitted, will
-        perform leave-one-out validation instead.
-    testing_Y1 : filename, OPTIONAL
-        The name of the file with the 1st testing labels. MUST be specified if
-        testing_X1 is provided.
-    testing_X2 : filename, OPTIONAL
-        The name of the file with the 2nd testing dataset.
-    testing_Y2 : filename, OPTIONAL
-        The name of the file with the 2nd testing labels. MUST be specified if
-        testing_X2 is provided.
-    <etc.> :
-        Additional testing datasets can be appended for evaluation.
+    Searches the directory for the training datasets and any testing datasets.
+
+    Parameters
+    ----------
+    directory : str
+        The directory to search in. Must contain "training_X.tsv" and
+        "training_Y.tsv". Any other files must be in pairs named "<name>_X.tsv"
+        and "<name>_Y.tsv". The "<>_X.tsv" files must contain the data points
+        where each ROW is a separate data point. The "<>_Y.tsv" files must
+        contain the labels.
+
+    Returns
+    -------
+    training_X : np.ndarray of float64
+        The training data points.
+    training_Y : np.ndarray of int64
+        The training labels.
+    do_regular_validation : bool
+        A boolean indicating whether or not to do regular validation with the
+        test sets.
+    testing_X : dict
+        The test datasets.
+    testing_Y : dict
+        The test labels.
     '''
     # Mandatory arguments
-    training_X = np.loadtxt(sys.argv[1], delimiter = "\t")
-    training_Y = np.loadtxt(sys.argv[2], dtype = int, delimiter = "\t")
-
-    out_file = sys.argv[3]
+    training_X = np.loadtxt(directory + "/training_X.tsv", delimiter = "\t")
+    training_Y = np.loadtxt(
+        directory + "/training_Y.tsv",
+        dtype = int,
+        delimiter = "\t"
+    )
 
     # Optional arguments
-
     do_regular_validation = False
 
-    a = 3
-    testing_X = []
-    testing_Y = []
-    while (len(sys.argv) > a):
-        do_regular_validation = True
-        a += 1
-        testing_X.append(np.loadtxt(sys.argv[a], delimiter = "\t"))
-        a += 1
-        testing_Y.append(np.loadtxt(sys.argv[a], delimiter = "\t"))
+    files = np.unique(
+        [f[:-6] for f in os.listdir(directory) if ".tsv" in f]
+    )
+    testing_X = {}
+    testing_Y = {}
+    for file in files:
+        if (file != "training"):
+            testing_X[file] = np.loadtxt(
+                directory + "/" + file + "_X.tsv",
+                delimiter = "\t"
+            )
+            testing_Y[file] = np.loadtxt(
+                directory + "/" + file + "_Y.tsv",
+                delimiter = "\t",
+                dtype = int
+            )
     
     return (
         training_X,
         training_Y,
-        out_file,
         do_regular_validation,
         testing_X,
         testing_Y

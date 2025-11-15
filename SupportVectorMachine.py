@@ -1,18 +1,24 @@
 #%% Setup
 
-from Functions import get_command_line_args, train_support_vector_machine, \
+# Imports
+from Functions import setup_model, train_support_vector_machine, \
     leave_one_out_validation, regular_validation
 import numpy as np
 import json as json
+import sys as sys
+import os as os
 
+# Setup Model
+training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
+    sys.argv[1]
+)
+
+# Parameters
 kernels = ["rbf", "poly", "poly", "poly", "poly"]
 degrees = [0, 1, 2, 3, 4]
 Cs = [1E-5 * 10**i for i in range(11)]
 
-training_X, training_Y, out_file, do_regular_validation, \
-    testing_X, testing_Y = get_command_line_args()
-
-#%% Performing the evaluation
+#%% Performing the Evaluation
 
 print("> Support Vector Machine on X: " + str(np.shape(training_X)) + "...")
 results = {}
@@ -49,4 +55,6 @@ for i in range(len(kernels)):
 
 #%% Outputting
 
-json.dump(results, out_file)
+if (not os.path.isdir(sys.argv[1] + "/Results")):
+    os.mkdir(sys.argv[1] + "/Results")
+json.dump(results, sys.argv[1] + "/Results/SupportVectorMachine.json")

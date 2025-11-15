@@ -2,3 +2,4 @@
 Data/
 *.soft
 __pycache__/
+*.tsv
