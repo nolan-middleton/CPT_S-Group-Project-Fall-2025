@@ -1,3 +1,4 @@
 ~$*
 Data/
 *.soft
+__pycache__/
