@@ -10,8 +10,215 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
+import sys as sys
+import os as os
+import numpy.char as ch
 
 #%% Function Definitions
+
+def reformat_data(raw_GDS_filename, output_folder):
+    '''
+    Reads in a SOFT file and spits out a data folder of easily-readable
+    data in .txt, .tsv, and .json format.
+
+    Parameters
+    ----------
+    raw_GDS_filename : str
+        The name of the SOFT file to read in.
+    output_folder : str
+        The name of the folder to dump the output into.
+
+    Returns
+    -------
+    A dictionary containing information on the data subsets.
+    '''
+    print("~~~ Reformatting Data ~~~")
+    
+    # Set up output folder
+    print("- Setting up output directory...")
+    if (not os.path.isdir(output_folder)):
+        os.mkdir(output_folder)
+    
+    # Read in data
+    print("- Reading data...")
+    lines = []
+    with open(raw_GDS_filename) as file:
+        for line in file:
+            lines.append(line)
+
+    # Sections in SOFT files are delimited with "^"
+    print("- Sectioning...")
+    sections = np.arange(len(lines))[["^" in L for L in lines]]
+    sections = np.append(sections, len(lines))
+    sections = [
+        lines[sections[i]:sections[i+1]]
+        for i in range(len(sections)-1)
+    ]
+
+    # The data table begins with "!dataset_table_begin" and ends with
+    # "!dataset_table_end"
+    print("- Finding data table...")
+    for i in range(len(lines)):
+        if ("!dataset_table_begin" in lines[i]):
+            start = i + 1
+        elif ("!dataset_table_end" in lines[i]):
+            end = i
+            break
+    cols = np.array(lines[start].replace("\n","").split("\t"))
+
+    # Read in each of the data subsets and their corresponding data columns
+    print("- Saving data subsets...")
+    subsets = []
+    for section in sections:
+        name = section[0].split("=")[0].replace(" ","").replace("^","")
+        
+        if (name == "SUBSET"):
+            subsets.append({})
+            for L in section:
+                if ("!subset_description" in L):
+                    subsets[-1]["label"] = L.split("=")[1].replace(
+                        " ",
+                        ""
+                    ).replace("\n", "")
+                elif ("!subset_sample_id" in L):
+                    subsets[-1]["entries"] = L.split("=")[1].replace(
+                        " ",
+                        ""
+                    ).replace("\n", "").split(",")
+            datacols = np.isin(cols, subsets[-1]["entries"])
+            subsets[-1]["data"] = np.loadtxt(
+                raw_GDS_filename,
+                comments = "!",
+                delimiter = "\t",
+                skiprows = start + 1,
+                usecols = np.arange(len(cols))[datacols]
+            )
+    
+    # Remove subsets, only keep the higher-level classes
+    remove = []
+    for i in range(len(subsets)):
+        for j in range(len(subsets)):
+            if (i != j) and (j not in remove):
+                if (set(subsets[i]["entries"]) <= set(subsets[j]["entries"])):
+                    remove.append(i)
+                    break
+    for i in range(len(remove)-1, -1, -1):
+        subsets.pop(remove[i])
+
+    # Save this
+    for subset in subsets:
+        fname = subset["label"] + ".tsv"
+        np.savetxt(output_folder+"/"+fname, subset["data"], delimiter = "\t")
+        subset["data"] = fname
+
+    # Read in the gene data (but not all the gene data)
+    print("- Saving gene data...")
+    geneData = np.loadtxt(
+        raw_GDS_filename,
+        dtype = str,
+        comments = "!",
+        delimiter = "\t",
+        skiprows = start,
+        max_rows = end - start,
+        usecols = np.arange(len(cols))[
+            np.isin(
+                cols,
+                [
+                    "ID_REF",
+                    "IDENTIFIER",
+                    "Gene title",
+                    "Gene symbol",
+                    "Gene ID",
+                    "GenBank Accession"
+                ]
+            )
+        ]
+    )
+
+    # Save this
+    np.savetxt(
+        output_folder + "/gene_data.tsv",
+        geneData[1:,:],
+        fmt = "%s",
+        delimiter = "\t",
+        header = "\t".join(geneData[0,:])
+    )
+    
+    # GO Stuff
+    print("- Saving GO data...")
+    if (not os.path.isdir(output_folder + "/GO")):
+        os.mkdir(output_folder + "/GO")
+    GO_cols = ch.startswith(cols, "GO")
+    
+    files = [
+        open(output_folder+"/GO/"+cols[GO_cols][i].split(":")[1]+".txt", "w")
+        for i in range(np.sum(GO_cols))
+    ]
+    indices = np.arange(len(cols))[GO_cols]
+    for line in lines[start + 1:end]:
+        entries = line.replace("\n", "").split("\t")
+        
+        for i in range(len(files)):
+            files[i].write(entries[indices[i]].replace("///", "\t") + "\n")
+    
+    for file in files:
+        file.close()
+    
+    print("~~~ Reformatted Data ~~~")
+    return subsets
+
+def get_command_line_args():
+    '''
+    Command-line arguments are, IN ORDER:
+    -------------------------------------
+    training_X : filename, MANDATORY
+        The name of the file with the training dataset.
+    training_Y : filename, MANDATORY
+        The name of the file with the training labels.
+    out_file : .json filename, MANDATORY
+        The name of the JSON file to dump the output.
+    testing_X1 : filename, OPTIONAL
+        The name of the file with the 1st testing dataset. If omitted, will
+        perform leave-one-out validation instead.
+    testing_Y1 : filename, OPTIONAL
+        The name of the file with the 1st testing labels. MUST be specified if
+        testing_X1 is provided.
+    testing_X2 : filename, OPTIONAL
+        The name of the file with the 2nd testing dataset.
+    testing_Y2 : filename, OPTIONAL
+        The name of the file with the 2nd testing labels. MUST be specified if
+        testing_X2 is provided.
+    <etc.> :
+        Additional testing datasets can be appended for evaluation.
+    '''
+    # Mandatory arguments
+    training_X = np.loadtxt(sys.argv[1], delimiter = "\t")
+    training_Y = np.loadtxt(sys.argv[2], dtype = int, delimiter = "\t")
+
+    out_file = sys.argv[3]
+
+    # Optional arguments
+
+    do_regular_validation = False
+
+    a = 3
+    testing_X = []
+    testing_Y = []
+    while (len(sys.argv) > a):
+        do_regular_validation = True
+        a += 1
+        testing_X.append(np.loadtxt(sys.argv[a], delimiter = "\t"))
+        a += 1
+        testing_Y.append(np.loadtxt(sys.argv[a], delimiter = "\t"))
+    
+    return (
+        training_X,
+        training_Y,
+        out_file,
+        do_regular_validation,
+        testing_X,
+        testing_Y
+    )
 
 #%%% Evaluation and Validation
 
@@ -233,14 +440,19 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     n = np.shape(X)[0]
     I = np.arange(n)
     M = np.zeros((2,2), dtype = int)
+    predictions = np.zeros((n,n), dtype = int)
     for i in range(n):
         keep = I != i
         this_X = X[keep,:]
         this_Y = Y[keep]
         
         model = train_f(this_X, this_Y, *args, **kwargs)
-        M += confusion_matrix(model.predict(X[i:(i+1),:]), Y[i:(i+1)])
-    return evaluate(M)
+        Y_hat = model.predict(X[i:(i+1),:])
+        M += confusion_matrix(Y_hat, Y[i:(i+1)])
+        
+        predictions[:,i] = Y_hat
+        
+    return {"prediction": predictions.tolist(), "evaluation": evaluate(M)}
 
 def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
     '''
@@ -256,9 +468,10 @@ def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
         The training dataset. Each ROW must be a data point.
     train_Y : np.ndarray of int
         The training labels.
-    test_X : np.ndarray of float
-        The testing dataset. Each ROW must be a data point.
-    test_Y : np.ndarray of int
+    test_X : list of np.ndarray of float
+        The testing datasets. Each entry must be a dataset wherein each ROW
+        must be a data point.
+    test_Y : list of np.ndarray of int
         The testing labels.
     *args :
         passed to train_f.
@@ -270,8 +483,26 @@ def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
     dict of evaluation statistics.
     '''
     model = train_f(train_X, train_Y, *args, **kwargs)
-    M = confusion_matrix(model.predict(test_X), test_Y)
-    return evaluate(M)
+    train_predictions = model.predict(train_X)
+    train_M = confusion_matrix(train_predictions, train_Y)
+    test_predictions = [model.predict(X) for X in test_X]
+    test_M = [
+        confusion_matrix(test_predictions[i], test_Y[i])
+        for i in range(len(test_X))
+    ]
+    return {
+        "training": {
+            "prediction": train_predictions.tolist(),
+            "evaluation": evaluate(train_M)
+        },
+        "testing": [
+            {
+                "prediction": test_predictions[i].tolist(),
+                "evaluation": evaluate(test_M[i])
+            }
+            for i in range(len(test_X))
+        ]
+    }
 
 #%%% Training Models
 

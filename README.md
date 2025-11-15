@@ -1,14 +1,20 @@
-# Dataset
+# Datasets
 
 **Name:** Macular degeneration and dermal fibroblast response to sublethal oxidative stress.
+- **GEO accession number:** GDS963
+- **Size:** 36×12625
 
-**GEO accession number:** GDS963
+**Name:** Myelodysplastic syndrome: CD34+ hematopoietic stem cells.
+- **GEO accession number:** GDS3795
+- **Size:** 200×54675
 
-**Size:** 36×12625
+**Name:** Pediatric acute leukemia patients with early relapse: white blood cells.
+- **GEO accession number:** GDS4206
+- **Size:** 197×54675
 
 # Approaches
 
-The primary challenges posed by this dataset (and many biological datasets) are the low number of data points and the high dimensionality. One way we could “pitch” this project would be to try a wide variety of methods to combat these challenges and see which ones work the best. We could treat it as sort of “a survey of strategies used to boost performance on biological datasets” or something similar. I think we should try the following algorithms and see which strategy helps the performance of each one:
+The primary challenges posed by these datasets (and many biological datasets) are the low number of data points and the high dimensionality. One way we could “pitch” this project would be to try a wide variety of methods to combat these challenges and see which ones work the best. We could treat it as sort of “a survey of strategies used to boost performance on biological datasets” or something similar. I think we should try the following algorithms and see which strategy helps the performance of each one:
 
 - Decision Tree (DT)
 - Random Forest (RF)
@@ -18,7 +24,7 @@ The primary challenges posed by this dataset (and many biological datasets) are 
 
 ## Strategies to Combat High Dimensionality
 
-The high dimensionality of the dataset poses numerous problems (the “curse of dimensionality”) especially given how few data points we have.
+The high dimensionality of the datasets poses numerous problems (the “curse of dimensionality”) especially given how few data points each one has.
 
 ### Strategy 1: Do nothing
 One way of dealing with any problem is to just ignore it. This could provide us with a good base point to compare performance with. We should anticipate that the results will be pretty bad, and this would give us an opportunity to discuss the issues with using the dataset as-is. While the DT and RF may not be as affected by the high dimension, the NBC, SVM, and *k*-NN will all likely suffer from the high dimension.
@@ -49,7 +55,7 @@ So, we’d go with leave-one-out validation. However, this poses a problem for m
 We could generate new data points by sampling random points from the VAE. Because the VAE encodes points in a generalizable way, sampling from the representation space and decoding back to the data space should give us data points similar to the points in the original dataset. We can then train on this augmented dataset. In this case, maybe we could reserve the original dataset for testing/validation (I’m not sure how sensible that would be, since we’re using the dataset to generate the encoding in the first place)?
 
 # Expected Results
-So, in the end, we would have a lot of data to talk about and discuss in the paper. We’re going to be comparing 5 different strategies for combatting the high dimensionality (columns) and 3 strategies for combatting the low number of data points (rows), resulting in 5×3=15 different combinations. For each combination, we’d be testing all 5 models.
+So, in the end, we would have a lot of data to talk about and discuss in the paper. We’re going to be comparing 5 different strategies for combatting the high dimensionality (columns) and 2 strategies for combatting the low number of data points (rows), resulting in 5×2=10 different combinations. For each combination, we’d be testing all 5 models.
 
 <table>
 	<tr>
@@ -85,7 +91,7 @@ So, in the end, we would have a lot of data to talk about and discuss in the pap
 	</tr>
 </table>
 
-So, each cell of this table corresponds to a different, modified dataset that has been transformed/augmented in some way with some combination of strategies to combat the high dimensionality and low number of data points. For each of these strategy combinations, we’d train and evaluate all 5 models. This means we’ll train and evaluate the DT, RF, NBC, SVM, and k-NN with 1a, then we’d do it again with 1b, and so on. We’d be training and evaluating 5×15=75 models.
+So, each cell of this table corresponds to a different, modified dataset that has been transformed/augmented in some way with some combination of strategies to combat the high dimensionality and low number of data points. For each of these strategy combinations, we’d train and evaluate all 5 models. This means we’ll train and evaluate the DT, RF, NBC, SVM, and k-NN with 1a, then we’d do it again with 1b, and so on. We’d be training and evaluating 5×10=50 models.
 
 # Goals/To Do
 

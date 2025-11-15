@@ -1,0 +1,2 @@
+Source file: Raw/GDS963_full.soft
+Classes: normal.tsv, maculardegeneration.tsv
