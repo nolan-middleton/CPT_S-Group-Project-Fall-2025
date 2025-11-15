@@ -1,15 +1,12 @@
 #%% Setup
 
 # Imports
-from Functions import setup_model, train_k_nearest_neighbours, \
-    leave_one_out_validation, regular_validation
+import Functions as F
 import numpy as np
-import json as json
 import sys as sys
-import os as os
 
 # Setup Model
-training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
+training_X,training_Y,do_regular_validation,testing_X,testing_Y=F.setup_model(
     sys.argv[1]
 )
 
@@ -28,8 +25,8 @@ for k in range(len(ks)):
     for p in ps:
         print(">> p = " + str(p) + "...")
         if (do_regular_validation):
-            results[str(k)][str(p)] = regular_validation(
-                train_k_nearest_neighbours,
+            results[str(k)][str(p)] = F.regular_validation(
+                F.train_k_nearest_neighbours,
                 training_X,
                 training_Y,
                 testing_X,
@@ -38,8 +35,8 @@ for k in range(len(ks)):
                 p = p
             )
         else:
-            results[str(k)][str(p)] = leave_one_out_validation(
-                train_k_nearest_neighbours,
+            results[str(k)][str(p)] = F.leave_one_out_validation(
+                F.train_k_nearest_neighbours,
                 training_X,
                 training_Y,
                 k = k,
@@ -48,7 +45,4 @@ for k in range(len(ks)):
 
 #%% Outputting
 
-if (not os.path.isdir(sys.argv[1] + "/Results")):
-    os.mkdir(sys.argv[1] + "/Results")
-with open(sys.argv[1] + "/Results/kNearestNeighbours.json", "w") as file:
-    json.dump(results, file)
+F.output_model_results(results,sys.argv[1]+"/Results/kNearestNeighbours.json")

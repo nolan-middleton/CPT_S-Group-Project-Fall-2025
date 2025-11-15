@@ -1,15 +1,12 @@
 #%% Setup
 
 # Imports
-from Functions import setup_model, train_support_vector_machine, \
-    leave_one_out_validation, regular_validation
+import Functions as F
 import numpy as np
-import json as json
 import sys as sys
-import os as os
 
 # Setup Model
-training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
+training_X,training_Y,do_regular_validation,testing_X,testing_Y=F.setup_model(
     sys.argv[1]
 )
 
@@ -33,8 +30,8 @@ for i in range(len(kernels)):
     for C in Cs:
         print(">> C = " + str(C) + "...")
         if (do_regular_validation):
-            results[kernel_key][str(C)] = regular_validation(
-                train_support_vector_machine,
+            results[kernel_key][str(C)] = F.regular_validation(
+                F.train_support_vector_machine,
                 training_X,
                 training_Y,
                 testing_X,
@@ -44,8 +41,8 @@ for i in range(len(kernels)):
                 degree = degrees[i]
             )
         else:
-            results[kernel_key][str(C)] = leave_one_out_validation(
-                train_support_vector_machine,
+            results[kernel_key][str(C)] = F.leave_one_out_validation(
+                F.train_support_vector_machine,
                 training_X,
                 training_Y,
                 C = C,
@@ -55,7 +52,7 @@ for i in range(len(kernels)):
 
 #%% Outputting
 
-if (not os.path.isdir(sys.argv[1] + "/Results")):
-    os.mkdir(sys.argv[1] + "/Results")
-with open(sys.argv[1] + "/Results/SupportVectorMachine.json", "w") as file:
-    json.dump(results, file)
+F.output_model_results(
+    results,
+    sys.argv[1] + "/Results/SupportVectorMachine.json"
+)

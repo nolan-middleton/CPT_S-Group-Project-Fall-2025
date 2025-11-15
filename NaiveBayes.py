@@ -1,15 +1,12 @@
 #%% Setup
 
 # Imports
-from Functions import setup_model, train_naive_bayes, \
-    leave_one_out_validation, regular_validation
+import Functions as F
 import numpy as np
-import json as json
 import sys as sys
-import os as os
 
 # Setup Model
-training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
+training_X,training_Y,do_regular_validation,testing_X,testing_Y=F.setup_model(
     sys.argv[1]
 )
 
@@ -17,8 +14,8 @@ training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
 
 print("> Naive Bayes on X: " + str(np.shape(training_X)) + "...")
 if (do_regular_validation):
-    results = regular_validation(
-        train_naive_bayes,
+    results = F.regular_validation(
+        F.train_naive_bayes,
         training_X,
         training_Y,
         testing_X,
@@ -26,8 +23,8 @@ if (do_regular_validation):
         prior = None
     )
 else:
-    results = leave_one_out_validation(
-        train_naive_bayes,
+    results = F.leave_one_out_validation(
+        F.train_naive_bayes,
         training_X,
         training_Y,
         prior = None
@@ -35,7 +32,4 @@ else:
 
 #%% Outputting
 
-if (not os.path.isdir(sys.argv[1] + "/Results")):
-    os.mkdir(sys.argv[1] + "/Results")
-with open(sys.argv[1] + "/Results/NaiveBayes.json", "w") as file:
-    json.dump(results, file)
+F.output_model_results(results, sys.argv[1] + "/Results/NaiveBayes.json")

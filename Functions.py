@@ -12,6 +12,7 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 import os as os
 import numpy.char as ch
+import json as json
 
 #%% Function Definitions
 
@@ -166,6 +167,40 @@ def reformat_data(raw_GDS_filename, output_folder):
     print("~~~ Reformatted Data ~~~")
     return subsets
 
+#%%% Evaluation
+
+def confusion_matrix(Y_hat, Y):
+    '''
+    Generates a kxk (where k is the number of classes) array representing the
+    confusion matrix.
+     |N  P <-- Actual
+    -+-----
+    N|TN FN
+    P|FP TP
+    ^
+    Guesses
+    
+    Parameters
+    ----------
+    Y_hat : np.ndarray of int
+        The guesses.
+    Y : np.ndarray of int
+        The correct answers.
+
+    Returns
+    -------
+    np.ndarray of shape (k,k) of int, where cell (i,j) is the number of
+    guesses i when the true answer was j.
+    '''
+    k = np.max(Y) + 1
+    M = np.zeros((k,k), dtype = int)
+    for i in range(k):
+        for j in range(k):
+            M[i,j] = np.sum((Y_hat == i) & (Y == j))
+    return M
+
+#%% Model Functions
+
 def setup_model(directory):
     '''
     Searches the directory for the training datasets and any testing datasets.
@@ -229,200 +264,6 @@ def setup_model(directory):
         testing_Y
     )
 
-#%%% Evaluation and Validation
-
-def confusion_matrix(Y_hat, Y):
-    '''
-    Generates a 2x2 array representing the confusion matrix.
-     |N  P <-- Actual
-    -+-----
-    N|TN FN
-    P|FP TP
-    ^
-    Guesses
-    
-    Parameters
-    ----------
-    Y_hat : np.ndarray of int
-        The guesses.
-    Y : np.ndarray of int
-        The correct answers.
-
-    Returns
-    -------
-    np.ndarray of shape (2,2) of int, where cell (i,j) is the number of
-    guesses i when the true answer was j.
-    '''
-    M = np.zeros((2,2), dtype = int)
-    M[0,0] = np.sum((Y_hat == 0) & (Y == 0))
-    M[0,1] = np.sum((Y_hat == 0) & (Y == 1))
-    M[1,0] = np.sum((Y_hat == 1) & (Y == 0))
-    M[1,1] = np.sum((Y_hat == 1) & (Y == 1))
-    return M
-
-def accuracy(M):
-    '''
-    Computes the accuracy from a confusion matrix.
-    (TP + TN) / (TP + FP + TN + FN)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the accuracy.
-    '''
-    return np.trace(M) / np.sum(M)
-
-def sensitivity(M):
-    '''
-    Computes the sensitivity from a confusion matrix.
-    TP / (TP + FN)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the sensitivity.
-    '''
-    return M[1,1] / np.sum(M[:,1])
-
-TPR = sensitivity
-recall = sensitivity
-
-FPR = lambda M : 1 - sensitivity(M)
-
-def specificity(M):
-    '''
-    Computes the specificity from a confusion matrix.
-    TN / (TN + FP)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the specificity.
-    '''
-    return M[0,0] / np.sum(M[:,0])
-
-TNR = specificity
-FNR = lambda M : 1 - specificity(M)
-
-def precision(M):
-    '''
-    Computes the precision from a confusion matrix.
-    TP / (TP + FP)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the precision.
-    '''
-    return M[1,1] / np.sum(M[1,:])
-
-PPV = precision
-
-FDR = lambda M : 1 - precision(M)
-
-def NPV(M):
-    '''
-    Computes the negative predictive value from a confusion matrix.
-    TN / (TN + FN)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the negative predictive value.
-    '''
-    return M[0,0] / np.sum(M[0,:])
-
-FOR = lambda M : 1 - NPV(M)
-
-def phi(M):
-    '''
-    Computes the phi coefficient from a confusion matrix.
-    sqrt(TPR*TNR*PPV*NPV) - sqrt(FNR*FPR*FOR*FDR)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the phi coefficient.
-    '''
-    return np.sqrt(TPR(M)*TNR(M)*PPV(M)*NPV(M)) - \
-        np.sqrt(FNR(M)*FPR(M)*FOR(M)*FDR(M))
-
-MCC = phi
-
-def F1(M):
-    '''
-    Computes the F1 score from a confusion matrix.
-    2TP/(2TP+FP+FN)
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The confusion matrix. Must have shape (2,2).
-
-    Returns
-    -------
-    float representing the F1 score.
-    '''
-    return 2*M[1,1]/(2*M[1,1] + M[1,0] + M[0,1])
-
-def evaluate(M):
-    '''
-    Generates a dictionary of all the model's performance statistics that can
-    be easily JSON-serialized.
-
-    Parameters
-    ----------
-    M : np.ndarray of int
-        The model's confusion matrix.
-
-    Returns
-    -------
-    dict containing the model evaluation statistics.
-    '''
-    
-    # The Python JSON library doesn't play nicely with the numpy data types,
-    # so I've found it's better to just explicitly convert any data you want
-    # to save in JSON files to the regular Python data types. -Nolan
-    return {
-        "accuracy": float(accuracy(M)),
-        "sensitivity": float(sensitivity(M)),
-        "specificity": float(specificity(M)),
-        "precision": float(precision(M)),
-        "NPV": float(NPV(M)),
-        "F1": float(F1(M)),
-        "phi": float(phi(M)),
-        "confusion_matrix": {
-            "TP": int(M[1,1]),
-            "TN": int(M[0,0]),
-            "FP": int(M[1,0]),
-            "FN": int(M[0,1])
-        }
-    }
-
 def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     '''
     Performs leave-one-out validation to measure the performance of a model.
@@ -449,7 +290,8 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     print("~~~ Leave-One-Out Validation ~~~")
     n = np.shape(X)[0]
     I = np.arange(n)
-    M = np.zeros((2,2), dtype = int)
+    k = np.max(Y)
+    M = np.zeros((k,k), dtype = int)
     predictions = np.zeros((n,n), dtype = int)
     for i in range(n):
         print("- " + str(i + 1) + "/" + str(n))
@@ -464,7 +306,7 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
         predictions[:,i] = Y_hat
     
     print("~~~ Leave-One-Out Validated ~~~")
-    return {"prediction": predictions.tolist(), "evaluation": evaluate(M)}
+    return {"prediction": predictions.tolist(), "results": M.tolist()}
 
 def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
     '''
@@ -480,10 +322,10 @@ def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
         The training dataset. Each ROW must be a data point.
     train_Y : np.ndarray of int
         The training labels.
-    test_X : list of np.ndarray of float
+    test_X : dict of np.ndarray of float
         The testing datasets. Each entry must be a dataset wherein each ROW
         must be a data point.
-    test_Y : list of np.ndarray of int
+    test_Y : dict of np.ndarray of int
         The testing labels.
     *args :
         passed to train_f.
@@ -494,29 +336,47 @@ def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
     -------
     dict of evaluation statistics.
     '''
+    print("~~~ Regular Validation ~~~")
     model = train_f(train_X, train_Y, *args, **kwargs)
+    print("- Training...")
     train_predictions = model.predict(train_X)
-    train_M = confusion_matrix(train_predictions, train_Y)
-    test_predictions = [model.predict(X) for X in test_X]
-    test_M = [
-        confusion_matrix(test_predictions[i], test_Y[i])
-        for i in range(len(test_X))
-    ]
-    return {
+    returnDict = {
         "training": {
             "prediction": train_predictions.tolist(),
-            "evaluation": evaluate(train_M)
+            "results": confusion_matrix(train_predictions, train_Y).tolist()
         },
-        "testing": [
-            {
-                "prediction": test_predictions[i].tolist(),
-                "evaluation": evaluate(test_M[i])
-            }
-            for i in range(len(test_X))
-        ]
+        "testing": {}
     }
+    print("- Testing...")
+    for key in test_X:
+        pred = model.predict(test_X[key])
+        returnDict["testing"][key] = {
+            "prediction": pred.tolist(),
+            "results": confusion_matrix(pred, test_Y[key]).tolist()
+        }
+    print("~~~ Regular Validated ~~~")
+    return returnDict
 
-#%%% Training Models
+def output_model_results(results, name):
+    '''
+    Outputs the results of the model evaluation.
+
+    Parameters
+    ----------
+    results : dict
+        The dictionary of results.
+    name : str
+        The name of the file to save it as.
+
+    Returns
+    -------
+    None.
+    '''
+    directory = "/".join(results.split("/")[:-1])
+    if (not os.path.isdir(directory)):
+        os.mkdir(directory)
+    with open(directory + "/" + name, "w") as file:
+        json.dump(results, file)
 
 def train_decision_tree(X, Y, max_depth = 6):
     '''

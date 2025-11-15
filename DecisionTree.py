@@ -1,15 +1,12 @@
 #%% Setup
 
 # Imports
-from Functions import setup_model, train_decision_tree, \
-    leave_one_out_validation, regular_validation
+import functions as F
 import numpy as np
-import json as json
 import sys as sys
-import os as os
 
 # Setup Model
-training_X,training_Y,do_regular_validation,testing_X,testing_Y=setup_model(
+training_X,training_Y,do_regular_validation,testing_X,testing_Y=F.setup_model(
     sys.argv[1]
 )
 
@@ -24,8 +21,8 @@ results = {}
 for depth in depths:
     print(">> Depth = " + str(depth) + "...")
     if (do_regular_validation):
-        results[str(depth)] = regular_validation(
-            train_decision_tree,
+        results[str(depth)] = F.regular_validation(
+            F.train_decision_tree,
             training_X,
             training_Y,
             testing_X,
@@ -33,8 +30,8 @@ for depth in depths:
             max_depth = depth
         )
     else:
-        results[str(depth)] = leave_one_out_validation(
-            train_decision_tree,
+        results[str(depth)] = F.leave_one_out_validation(
+            F.train_decision_tree,
             training_X,
             training_Y,
             max_depth = depth
@@ -42,7 +39,4 @@ for depth in depths:
 
 #%% Outputting
 
-if (not os.path.isdir(sys.argv[1] + "/Results")):
-    os.mkdir(sys.argv[1] + "/Results")
-with open(sys.argv[1] + "/Results/DecisionTree.json", "w") as file:
-    json.dump(results, file)
+F.output_model_results(results, sys.argv[1] + "/Results/DecisionTree.json")
