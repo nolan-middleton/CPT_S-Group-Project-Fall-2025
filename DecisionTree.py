@@ -44,4 +44,5 @@ for depth in depths:
 
 if (not os.path.isdir(sys.argv[1] + "/Results")):
     os.mkdir(sys.argv[1] + "/Results")
-json.dump(results, sys.argv[1] + "/Results/DecisionTree.json")
+with open(sys.argv[1] + "/Results/DecisionTree.json", "w") as file:
+    json.dump(results, file)

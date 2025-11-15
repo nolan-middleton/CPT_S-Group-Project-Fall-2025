@@ -24,7 +24,7 @@ for dataset in datasets:
     
     training_X = np.column_stack(tuple(data)).transpose()
     training_Y = np.concatenate(
-        tuple([np.repeat(i, np.shape(data[i])[0]) for i in range(len(data))])
+        tuple([np.repeat(i, np.shape(data[i])[1]) for i in range(len(data))])
     )
     
     if (not os.path.isdir(dataset + "/1a")):

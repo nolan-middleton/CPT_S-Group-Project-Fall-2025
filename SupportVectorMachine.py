@@ -57,4 +57,5 @@ for i in range(len(kernels)):
 
 if (not os.path.isdir(sys.argv[1] + "/Results")):
     os.mkdir(sys.argv[1] + "/Results")
-json.dump(results, sys.argv[1] + "/Results/SupportVectorMachine.json")
+with open(sys.argv[1] + "/Results/SupportVectorMachine.json", "w") as file:
+    json.dump(results, file)

@@ -50,4 +50,5 @@ for k in range(len(ks)):
 
 if (not os.path.isdir(sys.argv[1] + "/Results")):
     os.mkdir(sys.argv[1] + "/Results")
-json.dump(results, sys.argv[1] + "/Results/kNearestNeighbours.json")
+with open(sys.argv[1] + "/Results/kNearestNeighbours.json", "w") as file:
+    json.dump(results, file)
