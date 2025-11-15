@@ -446,11 +446,13 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     -------
     dict of evaluation statistics.
     '''
+    print("~~~ Leave-One-Out Validation ~~~")
     n = np.shape(X)[0]
     I = np.arange(n)
     M = np.zeros((2,2), dtype = int)
     predictions = np.zeros((n,n), dtype = int)
     for i in range(n):
+        print("- " + str(i + 1) + "/" + str(n))
         keep = I != i
         this_X = X[keep,:]
         this_Y = Y[keep]
@@ -460,7 +462,8 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
         M += confusion_matrix(Y_hat, Y[i:(i+1)])
         
         predictions[:,i] = Y_hat
-        
+    
+    print("~~~ Leave-One-Out Validated ~~~")
     return {"prediction": predictions.tolist(), "evaluation": evaluate(M)}
 
 def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
