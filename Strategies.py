@@ -4,10 +4,13 @@
 import numpy as np
 import os as os
 from sklearn.decomposition import PCA
-import numpy.char as ch
+import tensorflow as tf
+import Functions as F
+import tensorflow.keras as keras
 
 # Variables
 PCA_components = [2,3,4]
+VAE_layers = [10000, 10000, 2000, 400, 50, 2]
 
 #%% Main Loop
 datasets = np.loadtxt("datasets.txt", dtype = str).tolist()
@@ -66,9 +69,9 @@ for dataset in datasets:
         with open(dataset + "/Data/GO/" + cat + " ID.txt") as file:
             for line in file:
                 IDs.append(np.array(line[:-1].split("\t")))
-        IDs = [ID[ch.startswith(ID, "GO:")] for ID in IDs]
+        IDs = [ID[np.char.startswith(ID, "GO:")] for ID in IDs]
         IDs = [ID if len(ID) > 0 else np.array(["-1"]) for ID in IDs]
-        IDs = [ch.replace(ID, "GO:", "").astype(int) for ID in IDs]
+        IDs = [np.char.replace(ID, "GO:", "").astype(int) for ID in IDs]
         all_IDs = np.unique(np.concatenate(tuple(IDs)))
         all_IDs = all_IDs[all_IDs >= 0]
         np.savetxt(
@@ -118,3 +121,14 @@ for dataset in datasets:
             delimiter = "\t",
             fmt = "%d"
         )
+    
+    #%%% Strategy 4a: VAE
+    
+    print(">>> Strategy 4a: VAE...")
+    normalized_X = plain_X / np.max(plain_X)
+    encoder, decoder = F.VAE_encoder_decoder(np.shape(plain_X)[1], VAE_layers)
+    vae = F.VAE(encoder, decoder)
+    vae.compile(optimizer = keras.optimizers.Adam())
+    vae.fit(normalized_X, epochs=100, batch_size=int(np.shape(plain_X)[0]/2))
+    
+    

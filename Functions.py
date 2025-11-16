@@ -11,8 +11,10 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 import os as os
-import numpy.char as ch
 import json as json
+import tensorflow.keras as keras
+from tensorflow.keras import layers
+import tensorflow as tf
 
 #%% Function Definitions
 
@@ -148,7 +150,7 @@ def reformat_data(raw_GDS_filename, output_folder):
     print("- Saving GO data...")
     if (not os.path.isdir(output_folder + "/GO")):
         os.mkdir(output_folder + "/GO")
-    GO_cols = ch.startswith(cols, "GO")
+    GO_cols = np.char.startswith(cols, "GO")
     
     files = [
         open(output_folder+"/GO/"+cols[GO_cols][i].split(":")[1]+".txt", "w")
@@ -503,3 +505,113 @@ def train_k_nearest_neighbours(X, Y, k = 3, p = 2):
     kNN = KNeighborsClassifier(n_neighbors = k, p = p)
     kNN.fit(X, Y)
     return kNN
+
+#%% VAE
+
+class Sampling(layers.Layer):
+    '''
+    Uses (mean, log_var) to sample z.
+    
+    Basically, takes in an array of mean values M and a variance (in log
+    form) s, then returns a random vector drawn from norm(M[i], s) for all
+    i.
+    '''
+    
+    def call(self, inputs):
+        mean, log_var = inputs
+        batch = tf.shape(mean)[0]
+        dim = tf.shape(mean)[1]
+        epsilon = tf.random.normal(shape=(batch, dim))
+        return mean + tf.exp(0.5 * log_var) * epsilon
+
+def VAE_encoder_decoder(input_len, layer_lens):
+    '''
+    Creates the VAE encoder object.
+
+    Parameters
+    ----------
+    input_len : int
+        The dimension of the initial input layer.
+    layer_lens : list
+        A list of dimensions for the hidden layers. The last entry should be
+        the latent dimension of the representation space.
+
+    Returns
+    -------
+    keras.Model
+        The encoder model.
+    keras.Model
+        The decoder model.
+    '''
+    # Setup
+    input_shape = tuple([input_len])
+    layer_shapes = [tuple([l]) for l in layer_lens]
+    
+    # Encoder
+    encoder_inputs = keras.Input(shape = input_shape)
+    x = layers.Dense(layer_lens[0], activation = "relu")(encoder_inputs)
+    for i in range(1, len(layer_lens)):
+        x = layers.Dense(layer_lens[i], activation = "relu")(x)
+    
+    mean = layers.Dense(layer_lens[-1], name="mean")(x)
+    log_var = layers.Dense(layer_lens[-1], name = "log_var")(x)
+    z = Sampling()([mean, log_var])
+    encoder = keras.Model(encoder_inputs, [mean,log_var,z], name="encoder")
+    
+    # Decoder
+    latent_inputs = keras.Input(shape = layer_shapes[-1])
+    if (len(layer_lens) > 1):
+        y = layers.Dense(layer_lens[-2], activation = "relu")(latent_inputs)
+        for i in range(len(layer_lens) - 3, -1, -1):
+            y = layers.Dense(layer_lens[i], activation = "relu")(y)
+        decoder_output = layers.Dense(input_len, activation = "sigmoid")(y)
+    else:
+        decoder_output = layers.Dense(
+            input_len,
+            activation = "sigmoid"
+        )(latent_inputs)
+    decoder = keras.Model(latent_inputs, decoder_output, name = "decoder")
+    
+    return (encoder, decoder)
+
+class VAE(keras.Model):
+    def __init__(self, encoder, decoder, **kwargs):
+        super().__init__(**kwargs)
+        self.encoder = encoder
+        self.decoder = decoder
+        self.total_loss_tracker = keras.metrics.Mean(name = "loss")
+        self.reconstruction_loss_tracker = keras.metrics.Mean(
+            name = "reconstruction_loss"
+        )
+        self.kl_loss_tracker = keras.metrics.Mean(name = "kl_loss")
+
+    @property
+    def metrics(self):
+        return [
+            self.total_loss_tracker,
+            self.reconstruction_loss_tracker,
+            self.kl_loss_tracker,
+        ]
+
+    def train_step(self, data):
+        with tf.GradientTape() as tape:
+            mean, log_var, z = self.encoder(data)
+            reconstruction = self.decoder(z)
+            reconstruction_loss = tf.reduce_mean(
+                keras.losses.binary_crossentropy(data, reconstruction)
+            )
+            kl_loss = -0.5 * (1 + log_var - tf.square(mean) - tf.exp(log_var))
+            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis = 1))
+            total_loss = reconstruction_loss + kl_loss
+        
+        grads = tape.gradient(total_loss, self.trainable_variables)
+        self.optimizer.apply(grads, self.trainable_variables)
+        self.total_loss_tracker.update_state(total_loss)
+        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
+        self.kl_loss_tracker.update_state(kl_loss)
+        
+        return {
+            "total_loss": self.total_loss_tracker.result(),
+            "reconstruction_loss": self.reconstruction_loss_tracker.result(),
+            "kl_loss": self.kl_loss_tracker.result(),
+        }
