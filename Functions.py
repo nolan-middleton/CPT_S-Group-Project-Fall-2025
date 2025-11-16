@@ -554,7 +554,7 @@ def VAE_encoder_decoder(input_len, layer_lens):
         x = layers.Dense(layer_lens[i], activation = "relu")(x)
     
     mean = layers.Dense(layer_lens[-1], name = "mean")(x)
-    log_var = layers.Dense(layer_lens[-1], name = "log_var")(x)
+    log_var = layers.Dense(1, name = "log_var")(x)
     z = Sampling()([mean, log_var])
     encoder = keras.Model(encoder_inputs, [mean,log_var,z], name="encoder")
     

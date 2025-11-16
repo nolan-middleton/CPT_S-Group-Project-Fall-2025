@@ -10,7 +10,7 @@ import gc as gc
 
 # Variables
 PCA_components = [2,3,4]
-VAE_layers = [10000, 2000, 400, 50, 5]
+VAE_layers = [5000, 2]
 
 #%% Main Loop
 datasets = np.loadtxt("datasets.txt", dtype = str).tolist()
@@ -129,6 +129,5 @@ for dataset in datasets:
     encoder, decoder = F.VAE_encoder_decoder(np.shape(plain_X)[1], VAE_layers)
     vae = F.VAE(encoder, decoder)
     vae.compile(optimizer = keras.optimizers.Adam())
-    vae.fit(normalized_X, epochs=10, batch_size=int(np.shape(plain_X)[0]))
+    vae.fit(normalized_X, epochs = 20, batch_size = 1)
     gc.collect()
-    
