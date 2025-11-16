@@ -553,7 +553,7 @@ def VAE_encoder_decoder(input_len, layer_lens):
     for i in range(1, len(layer_lens)):
         x = layers.Dense(layer_lens[i], activation = "relu")(x)
     
-    mean = layers.Dense(layer_lens[-1], name="mean")(x)
+    mean = layers.Dense(layer_lens[-1], name = "mean")(x)
     log_var = layers.Dense(layer_lens[-1], name = "log_var")(x)
     z = Sampling()([mean, log_var])
     encoder = keras.Model(encoder_inputs, [mean,log_var,z], name="encoder")
@@ -564,11 +564,11 @@ def VAE_encoder_decoder(input_len, layer_lens):
         y = layers.Dense(layer_lens[-2], activation = "relu")(latent_inputs)
         for i in range(len(layer_lens) - 3, -1, -1):
             y = layers.Dense(layer_lens[i], activation = "relu")(y)
-        decoder_output = layers.Dense(input_len, activation = "sigmoid")(y)
+        decoder_output = layers.Dense(input_len, activation = "tanh")(y)
     else:
         decoder_output = layers.Dense(
             input_len,
-            activation = "sigmoid"
+            activation = "tanh"
         )(latent_inputs)
     decoder = keras.Model(latent_inputs, decoder_output, name = "decoder")
     
@@ -602,7 +602,7 @@ class VAE(keras.Model):
             )
             kl_loss = -0.5 * (1 + log_var - tf.square(mean) - tf.exp(log_var))
             kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis = 1))
-            total_loss = reconstruction_loss + kl_loss
+            total_loss = 0.0001*reconstruction_loss + kl_loss
         
         grads = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply(grads, self.trainable_variables)

@@ -4,13 +4,13 @@
 import numpy as np
 import os as os
 from sklearn.decomposition import PCA
-import tensorflow as tf
 import Functions as F
 import tensorflow.keras as keras
+import gc as gc
 
 # Variables
 PCA_components = [2,3,4]
-VAE_layers = [10000, 10000, 2000, 400, 50, 2]
+VAE_layers = [10000, 2000, 400, 50, 5]
 
 #%% Main Loop
 datasets = np.loadtxt("datasets.txt", dtype = str).tolist()
@@ -125,10 +125,10 @@ for dataset in datasets:
     #%%% Strategy 4a: VAE
     
     print(">>> Strategy 4a: VAE...")
-    normalized_X = plain_X / np.max(plain_X)
+    normalized_X = np.log10(plain_X) / (1.5*np.max(np.abs(np.log10(plain_X))))
     encoder, decoder = F.VAE_encoder_decoder(np.shape(plain_X)[1], VAE_layers)
     vae = F.VAE(encoder, decoder)
     vae.compile(optimizer = keras.optimizers.Adam())
-    vae.fit(normalized_X, epochs=100, batch_size=int(np.shape(plain_X)[0]/2))
-    
+    vae.fit(normalized_X, epochs=10, batch_size=int(np.shape(plain_X)[0]))
+    gc.collect()
     
