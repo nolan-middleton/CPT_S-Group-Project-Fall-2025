@@ -553,8 +553,8 @@ def VAE_encoder_decoder(input_len, layer_lens):
     for i in range(1, len(layer_lens)):
         x = layers.Dense(layer_lens[i], activation = "relu")(x)
     
-    mean = layers.Dense(layer_lens[-1], name = "mean")(x)
-    log_var = layers.Dense(1, name = "log_var")(x)
+    mean = layers.Dense(layer_lens[-1], name = "mean", activation = "tanh")(x)
+    log_var = layers.Dense(1, name = "log_var", activation = "tanh")(x)
     z = Sampling()([mean, log_var])
     encoder = keras.Model(encoder_inputs, [mean,log_var,z], name="encoder")
     
@@ -564,16 +564,14 @@ def VAE_encoder_decoder(input_len, layer_lens):
         y = layers.Dense(layer_lens[-2], activation = "relu")(latent_inputs)
         for i in range(len(layer_lens) - 3, -1, -1):
             y = layers.Dense(layer_lens[i], activation = "relu")(y)
-        decoder_output = layers.Dense(input_len, activation = "tanh")(y)
+        decoder_output = layers.Dense(input_len)(y)
     else:
-        decoder_output = layers.Dense(
-            input_len,
-            activation = "tanh"
-        )(latent_inputs)
+        decoder_output = layers.Dense(input_len)(latent_inputs)
     decoder = keras.Model(latent_inputs, decoder_output, name = "decoder")
     
     return (encoder, decoder)
 
+# TODO: Try implementing https://arxiv.org/pdf/2309.13160v3
 class VAE(keras.Model):
     def __init__(self, encoder, decoder, **kwargs):
         super().__init__(**kwargs)
@@ -583,14 +581,14 @@ class VAE(keras.Model):
         self.reconstruction_loss_tracker = keras.metrics.Mean(
             name = "reconstruction_loss"
         )
-        self.kl_loss_tracker = keras.metrics.Mean(name = "kl_loss")
+        #self.kl_loss_tracker = keras.metrics.Mean(name = "kl_loss")
 
     @property
     def metrics(self):
         return [
             self.total_loss_tracker,
             self.reconstruction_loss_tracker,
-            self.kl_loss_tracker,
+            #self.kl_loss_tracker,
         ]
 
     def train_step(self, data):
@@ -600,18 +598,18 @@ class VAE(keras.Model):
             reconstruction_loss = tf.reduce_mean(
                 keras.losses.binary_crossentropy(data, reconstruction)
             )
-            kl_loss = -0.5 * (1 + log_var - tf.square(mean) - tf.exp(log_var))
-            kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis = 1))
-            total_loss = 0.0001*reconstruction_loss + kl_loss
+            #kl_loss = -0.5 * (1 + log_var - tf.square(mean) - tf.exp(log_var))
+            #kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis = 1))
+            total_loss = reconstruction_loss #+ kl_loss
         
         grads = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply(grads, self.trainable_variables)
         self.total_loss_tracker.update_state(total_loss)
         self.reconstruction_loss_tracker.update_state(reconstruction_loss)
-        self.kl_loss_tracker.update_state(kl_loss)
+        #self.kl_loss_tracker.update_state(kl_loss)
         
         return {
             "total_loss": self.total_loss_tracker.result(),
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
-            "kl_loss": self.kl_loss_tracker.result(),
+            #"kl_loss": self.kl_loss_tracker.result(),
         }
