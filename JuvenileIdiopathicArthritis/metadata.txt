@@ -1,0 +1,2 @@
+Source file: Raw/GDS4267_full.soft
+Classes: systemicJIA.tsv, non-systemicJIA.tsv, healthy.tsv

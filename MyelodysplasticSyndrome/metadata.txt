@@ -1,2 +1,0 @@
-Source file: Raw/GDS3795_full.soft
-Classes: myelodysplasticsyndrome.tsv, control.tsv

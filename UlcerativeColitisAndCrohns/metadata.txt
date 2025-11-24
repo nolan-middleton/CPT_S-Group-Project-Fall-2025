@@ -1,0 +1,2 @@
+Source file: Raw/GDS1615_full.soft
+Classes: normal.tsv, ulcerativecolitis.tsv, Crohn'sdisease.tsv
