@@ -1,42 +1,27 @@
 #%% Setup
 
 # Imports
-import functions as F
-import numpy as np
-import sys as sys
-
-# Setup Model
-training_X,training_Y,do_regular_validation,testing_X,testing_Y=F.setup_model(
-    sys.argv[1]
-)
+import Functions as F
 
 # Parameters
-depths = [1,2,3,4] # The max_depths to test, 2^4 is already 16 buckets
 
-#%% Performing the Evaluation
+# The max_depths to test, 2^4 is already 16 buckets, and for 200 data points,
+# that's already down to ~12-13 per bucket if evenly distributed.
+depths = [2,3,4]
 
-print("> Decision Tree on X: " + str(np.shape(training_X)) + "...")
-results = {}
-
-for depth in depths:
-    print(">> Depth = " + str(depth) + "...")
-    if (do_regular_validation):
-        results[str(depth)] = F.regular_validation(
-            F.train_decision_tree,
-            training_X,
-            training_Y,
-            testing_X,
-            testing_Y,
-            max_depth = depth
-        )
-    else:
+# Defs
+def model_function(training_X, training_Y):
+    results = {}
+    for depth in depths:
+        print("=> Depth: " + str(depth) + "...")
         results[str(depth)] = F.leave_one_out_validation(
             F.train_decision_tree,
             training_X,
             training_Y,
             max_depth = depth
         )
+    return results
 
-#%% Outputting
+#%% Performing the Evaluation
 
-F.output_model_results(results, sys.argv[1] + "/Results/DecisionTree.json")
+F.execute_model(model_function, "DecisionTree.json")

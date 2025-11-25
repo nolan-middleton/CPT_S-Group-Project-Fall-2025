@@ -196,7 +196,7 @@ def reformat_data(raw_GDS_filename, output_folder):
 
 #%%% Evaluation
 
-def confusion_matrix(Y_hat, Y):
+def confusion_matrix(Y_hat, Y, k):
     '''
     Generates a kxk (where k is the number of classes) array representing the
     confusion matrix.
@@ -213,13 +213,14 @@ def confusion_matrix(Y_hat, Y):
         The guesses.
     Y : np.ndarray of int
         The correct answers.
+    k : int
+        The number of classes.
 
     Returns
     -------
     np.ndarray of shape (k,k) of int, where cell (i,j) is the number of
     guesses i when the true answer was j.
     '''
-    k = np.max(Y) + 1
     M = np.zeros((k,k), dtype = int)
     for i in range(k):
         for j in range(k):
@@ -228,68 +229,71 @@ def confusion_matrix(Y_hat, Y):
 
 #%% Model Functions
 
-def setup_model(directory):
+def execute_model(model_function, filename):
     '''
-    Searches the directory for the training datasets and any testing datasets.
+    Takes in a model function, then performs the model training and evaluation
+    and dumps output results specified directory.
 
     Parameters
     ----------
-    directory : str
-        The directory to search in. Must contain "training_X.tsv" and
-        "training_Y.tsv". Any other files must be in pairs named "<name>_X.tsv"
-        and "<name>_Y.tsv". The "<>_X.tsv" files must contain the data points
-        where each ROW is a separate data point. The "<>_Y.tsv" files must
-        contain the labels.
+    model_function : callable
+        Must take in the following arguments, in this order:
+            training_X
+            training_Y
+        and then return the evaluation results.
+    filename : str
+        The name of the file to dump the results into.
 
     Returns
     -------
-    training_X : np.ndarray of float64
-        The training data points.
-    training_Y : np.ndarray of int64
-        The training labels.
-    do_regular_validation : bool
-        A boolean indicating whether or not to do regular validation with the
-        test sets.
-    testing_X : dict
-        The test datasets.
-    testing_Y : dict
-        The test labels.
+    None
     '''
-    # Mandatory arguments
-    training_X = np.loadtxt(directory + "/training_X.tsv", delimiter = "\t")
-    training_Y = np.loadtxt(
-        directory + "/training_Y.tsv",
-        dtype = int,
-        delimiter = "\t"
-    )
-
-    # Optional arguments
-    do_regular_validation = False
-
-    files = np.unique(
-        [f[:-6] for f in os.listdir(directory) if ".tsv" in f]
-    )
-    testing_X = {}
-    testing_Y = {}
-    for file in files:
-        if (file != "training"):
-            testing_X[file] = np.loadtxt(
-                directory + "/" + file + "_X.tsv",
-                delimiter = "\t"
-            )
-            testing_Y[file] = np.loadtxt(
-                directory + "/" + file + "_Y.tsv",
-                delimiter = "\t",
-                dtype = int
-            )
+    print("~~~ Executing Model ~~~")
+    # Load datasets
+    datasets = np.loadtxt("datasets.txt", dtype = str)
     
-    return (
-        training_X,
-        training_Y,
-        do_regular_validation,
-        testing_X,
-        testing_Y
-    )
+    for dataset in datasets:
+        print("- " + dataset + "...")
+        for dirEntry in os.scandir(dataset):
+            name = dirEntry.name
+            if (name != "Data") and (os.path.isdir(dataset + "/" + name)):
+                print("-- Strategy " + name + "...")
+                subItems = [
+                    thing.name
+                    for thing in os.scandir(dataset + "/" + name)
+                ]
+                if ("training_X.tsv" in subItems):
+                    results = model_function(
+                        np.loadtxt(
+                            dataset + "/" + name + "/training_X.tsv",
+                            delimiter = "\t"
+                        ),
+                        np.loadtxt(
+                            dataset + "/" + name + "/training_Y.tsv",
+                            delimiter = "\t",
+                            dtype = int
+                        )
+                    )
+                    output_model_results(results,dataset+"/"+name+"/"+filename)
+                else:
+                    for item in subItems:
+                        print("--- " + item + "...")
+                        results = model_function(
+                            np.loadtxt(
+                                dataset+"/"+name+"/"+item+"/training_X.tsv",
+                                delimiter = "\t"
+                            ),
+                            np.loadtxt(
+                                dataset+"/"+name+"/"+item+"/training_Y.tsv",
+                                delimiter = "\t",
+                                dtype = int,
+                            )
+                        )
+                        output_model_results(
+                            results,
+                            dataset+"/"+name+"/"+item+"/"+filename
+                        )
+    print("~~~ Executed Model ~~~")
 
 def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     '''
@@ -317,72 +321,24 @@ def leave_one_out_validation(train_f, X, Y, *args, **kwargs):
     print("~~~ Leave-One-Out Validation ~~~")
     n = np.shape(X)[0]
     I = np.arange(n)
-    k = np.max(Y)
+    k = np.max(Y) + 1
     M = np.zeros((k,k), dtype = int)
     predictions = np.zeros((n,n), dtype = int)
     for i in range(n):
-        print("- " + str(i + 1) + "/" + str(n))
+        if (i % 10 == 0):
+            print("- " + str(i + 1) + "/" + str(n))
         keep = I != i
         this_X = X[keep,:]
         this_Y = Y[keep]
         
         model = train_f(this_X, this_Y, *args, **kwargs)
         Y_hat = model.predict(X[i:(i+1),:])
-        M += confusion_matrix(Y_hat, Y[i:(i+1)])
+        M += confusion_matrix(Y_hat, Y[i:(i+1)], k)
         
         predictions[:,i] = Y_hat
     
     print("~~~ Leave-One-Out Validated ~~~")
     return {"prediction": predictions.tolist(), "results": M.tolist()}
-
-def regular_validation(train_f,train_X,train_Y,test_X,test_Y,*args,**kwargs):
-    '''
-    Performs regular validation on the dataset with a separate test set.
-
-    Parameters
-    ----------
-    train_f : function
-        The function to train the model with. Must take in X and Y as its first
-        two arguments, then any other *args and **kwargs. Must return a model
-        that has the .predict() method.
-    train_X : np.ndarray of float
-        The training dataset. Each ROW must be a data point.
-    train_Y : np.ndarray of int
-        The training labels.
-    test_X : dict of np.ndarray of float
-        The testing datasets. Each entry must be a dataset wherein each ROW
-        must be a data point.
-    test_Y : dict of np.ndarray of int
-        The testing labels.
-    *args :
-        passed to train_f.
-    **kwargs :
-        passed to train_f.
-
-    Returns
-    -------
-    dict of evaluation statistics.
-    '''
-    print("~~~ Regular Validation ~~~")
-    model = train_f(train_X, train_Y, *args, **kwargs)
-    print("- Training...")
-    train_predictions = model.predict(train_X)
-    returnDict = {
-        "training": {
-            "prediction": train_predictions.tolist(),
-            "results": confusion_matrix(train_predictions, train_Y).tolist()
-        },
-        "testing": {}
-    }
-    print("- Testing...")
-    for key in test_X:
-        pred = model.predict(test_X[key])
-        returnDict["testing"][key] = {
-            "prediction": pred.tolist(),
-            "results": confusion_matrix(pred, test_Y[key]).tolist()
-        }
-    print("~~~ Regular Validated ~~~")
-    return returnDict
 
 def output_model_results(results, name):
     '''
@@ -399,10 +355,7 @@ def output_model_results(results, name):
     -------
     None.
     '''
-    directory = "/".join(results.split("/")[:-1])
-    if (not os.path.isdir(directory)):
-        os.mkdir(directory)
-    with open(directory + "/" + name, "w") as file:
+    with open(name, "w") as file:
         json.dump(results, file)
 
 def train_decision_tree(X, Y, max_depth = 6):
