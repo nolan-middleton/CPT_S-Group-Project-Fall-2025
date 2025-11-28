@@ -26,7 +26,7 @@ def model_function(training_X, training_Y):
         for C in Cs:
             print("=> C: " + str(C) + "...")
             results[kernelKey][str(C)] = F.leave_one_out_validation(
-                F.train_SVM,
+                F.train_support_vector_machine,
                 training_X,
                 training_Y,
                 kernel = kernels[i],
