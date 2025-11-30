@@ -5,7 +5,7 @@ import Functions as F
 
 # Parameters
 depths = [2,3,4] # The max_depths to test
-n_estimators = [100, 200, 500, 1000, 2000] # n_estimators to test
+n_estimators = [100, 200, 500] # n_estimators to test
 
 # Defs
 def model_function(training_X, training_Y):
