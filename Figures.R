@@ -534,4 +534,370 @@ SVM_fig <- function(dataList, title = NULL) {
   return(P)
 }
 
-make_barplots(SVM_fig, data, "SupportVectorMachine")
+make_barplots(SVM_fig, data, "SupportVectorMachine", 2500, 1250)
+
+##### LABELS #####
+
+labels <- list()
+for (dataset in datasets) {
+  L <- unlist(read.delim(paste0(dataset, "/metadata.txt")))
+  names(L) <- c()
+  L <- unlist(strsplit(L, ": "))[2]
+  L <- unlist(strsplit(L, ", "))
+  L <- unlist(strsplit(L, ".tsv"))
+  
+  labels[[dataset]] <- L
+}
+
+nice_labels <- list(
+  "UlcerativeColitisAndCrohns" = list(
+    "title" = "Disease",
+    "labels" = c("Normal", "Ulcerative\nColitis", "Crohn's\nDisease")
+  ),
+  "SquamousCellLungCarcinomas" = list(
+    "title" = "Stage",
+    "labels" = c("IA", "IB", "IIA", "IIB", "IIIA", "IIIB")
+  ),
+  "SmokerEpithelialCells" = list(
+    "title" = "Cancer",
+    "labels" = c("None", "Confirmed", "Suspected")
+  ),
+  "MDS" = list(
+    "title" = "Disease",
+    "labels" = c("Myelodysplastic\nSyndrome", "Healthy")
+  ),
+  "PediatricALL" = list(
+    "title" = "Relapse",
+    "labels" = c("Early", "Late", "None")
+  ),
+  "HIV" = list(
+    "title" = "HIV",
+    "labels" = c("Negative", "Positive")
+  ),
+  "JuvenileIdiopathicArthritis" = list(
+    "title" = "JIA",
+    "labels" = c("Systemic", "Non-Systemic", "None")
+  ),
+  "Glioblastoma" = list(
+    "title" = "Overall\nSurvival",
+    "labels" = c("Short-Term", "Intermediate", "Long-Term")
+  ),
+  "MacularDegeneration" = list(
+    "title" = "Disease",
+    "labels" = c("Normal", "Macular\nDegeneration")
+  )
+)
+
+##### SCATTER PLOTS #####
+
+make_scatter <- function(X, dirname, xlab, ylab) {
+  if (!dir.exists(dirname)) {
+    dir.create(dirname)
+  }
+  
+  # UlcerativeColitisAndCrohns
+  P <- ggplot(data = X[[1]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[1]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[1]]$title,
+      type = c("white", "grey", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[1], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # SquamousCellLungCarcinomas
+  P <- ggplot(data = X[[2]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label, levels = nice_labels[[2]]$labels),
+        shape = factor(label, levels = nice_labels[[2]]$labels)
+      )
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_manual(
+      name = nice_labels[[2]]$title,
+      labels = nice_labels[[2]]$labels,
+      values = rep(c("white", "grey", "black"), each = 2)
+    ) +
+    scale_shape_manual(
+      name = nice_labels[[2]]$title,
+      labels = nice_labels[[2]]$labels,
+      values = rep(c(21, 22), 3)
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[2], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # SmokerEpithelialCells
+  P <- ggplot(data = X[[3]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[3]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[3]]$title,
+      type = c("white", "grey", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[3], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # MDS
+  P <- ggplot(data = X[[4]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[4]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[4]]$title,
+      type = c("white", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[4], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # PediatricALL
+  P <- ggplot(data = X[[5]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[5]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[5]]$title,
+      type = c("white", "grey", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[5], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # MDS
+  P <- ggplot(data = X[[6]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[6]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[6]]$title,
+      type = c("white", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[6], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # JuvenileIdiopathicArthritis
+  P <- ggplot(data = X[[7]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[7]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[7]]$title,
+      type = c("white", "grey", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[7], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # Glioblastoma
+  P <- ggplot(data = X[[8]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[8]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[8]]$title,
+      type = c("white", "grey", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[8], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+  
+  # MacularDegeneration
+  P <- ggplot(data = X[[9]]) +
+    geom_point(
+      mapping = aes(
+        x = x,
+        y = y,
+        fill = factor(label,levels = nice_labels[[9]]$labels)
+      ),
+      shape = 21
+    ) +
+    plotTheme +
+    scale_x_continuous(name = xlab) +
+    scale_y_continuous(name = ylab) +
+    scale_fill_discrete(
+      name = nice_labels[[9]]$title,
+      type = c("white", "black")
+    )
+  
+  ggsave(
+    paste0(dirname, "/", datasets[9], ".png"),
+    plot = P,
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+}
+
+# PCA
+X <- list()
+for (dataset in datasets) {
+  X[[dataset]] <- read.delim(
+    paste0(dataset, "/3/2/training_X.tsv"),
+    header = FALSE
+  )
+  X[[dataset]] <- cbind(
+    X[[dataset]],
+    read.delim(paste0(dataset, "/3/2/training_Y.tsv"), header = FALSE)
+  )
+  colnames(X[[dataset]]) <- c("x", "y", "label")
+  X[[dataset]]$label <- nice_labels[[dataset]]$labels[X[[dataset]]$label+1]
+}
+
+make_scatter(
+  X,
+  "Figures/PCA",
+  "Principle Component 1",
+  "Principle Component 2"
+)
+
+# Kernelized PCA
+X <- list()
+for (dataset in datasets) {
+  X[[dataset]] <- read.delim(
+    paste0(dataset, "/4/2/training_X.tsv"),
+    header = FALSE
+  )
+  X[[dataset]] <- cbind(
+    X[[dataset]],
+    read.delim(paste0(dataset, "/4/2/training_Y.tsv"), header = FALSE)
+  )
+  colnames(X[[dataset]]) <- c("x", "y", "label")
+  X[[dataset]]$label <- nice_labels[[dataset]]$labels[X[[dataset]]$label+1]
+}
+
+make_scatter(
+  X,
+  "Figures/kernelizedPCA",
+  "Principle Component 1",
+  "Principle Component 2"
+)
+
+# NMF
+X <- list()
+for (dataset in datasets) {
+  X[[dataset]] <- read.delim(
+    paste0(dataset, "/5/2/training_X.tsv"),
+    header = FALSE
+  )
+  X[[dataset]] <- cbind(
+    X[[dataset]],
+    read.delim(paste0(dataset, "/5/2/training_Y.tsv"), header = FALSE)
+  )
+  colnames(X[[dataset]]) <- c("x", "y", "label")
+  X[[dataset]]$label <- nice_labels[[dataset]]$labels[X[[dataset]]$label+1]
+}
+
+make_scatter(
+  X,
+  "Figures/NMF",
+  "Feature 1",
+  "Feature 2"
+)
