@@ -10,6 +10,7 @@ require(stringr)
 require(rstudioapi)
 require(grid)
 require(ggh4x)
+require(ggpattern)
 
 # Directories
 setwd(dirname(getActiveDocumentContext()$path))
@@ -1648,6 +1649,97 @@ for (kernel in unique(D$SupportVectorMachine$kernel)) {
     units = "px"
   )
 }
+
+##### COARSE-GRAIN PLOTS #####
+
+coarse_D <- data.frame(
+  dataset = character(0),
+  strategy = character(0),
+  model = character(0),
+  accuracy = numeric(0)
+)
+
+for (model in names(D)) {
+  for (dataset in names(datasets)) {
+    for (strategy in strategies) {
+      coarse_D <- rbind(
+        coarse_D,
+        data.frame(
+          dataset = dataset,
+          strategy = strategy,
+          model = model,
+          accuracy = max(
+            D[[model]]$accuracy[
+              (D[[model]]$dataset == dataset) &
+              (D[[model]]$strategy == strategy)
+            ]
+          )
+        )
+      )
+    }
+  }
+}
+
+coarse_D$strategy[coarse_D$strategy == "Kernelized PCA"] <- "kPCA"
+coarse_D$strategy[coarse_D$strategy == "Aggregate"] <- "Aggr"
+coarse_D$model[coarse_D$model == "DecisionTree"] <- "DT"
+coarse_D$model[coarse_D$model == "kNearestNeighbours"] <- "k-NN"
+coarse_D$model[coarse_D$model == "NaiveBayes"] <- "NB"
+coarse_D$model[coarse_D$model == "RandomForest"] <- "RF"
+coarse_D$model[coarse_D$model == "SupportVectorMachine"] <- "SVM"
+
+ggplot(data = coarse_D) +
+  geom_col_pattern(
+    mapping = aes(
+      x = factor(strategy, levels = c("No", "Aggr", "PCA", "kPCA", "NMF")),
+      y = accuracy,
+      fill = model,
+      pattern = model
+    ),
+    position = position_dodge2(padding = 0),
+    color = "black",
+    pattern_fill = "black"
+  ) +
+  facet_grid(
+    . ~ dataset,
+    space = "free_x",
+    scale = "free_x"
+  ) +
+  plotTheme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(
+    name = "Optimal Accuracy",
+    breaks = 0:5 / 5,
+    expand = c(0,0)
+  ) +
+  scale_x_discrete(name = "Dimensionality Reduction Strategy") +
+  scale_fill_manual(
+    name = "Model",
+    values = c(
+      "DT" = "white",
+      "k-NN" = "grey",
+      "NB" = "black",
+      "RF" = "white",
+      "SVM" = "white"
+    )
+  ) +
+  scale_pattern_manual(
+    name = "Model",
+    values = c(
+      "DT" = "none",
+      "k-NN" = "none",
+      "NB" = "none",
+      "RF" = "stripe",
+      "SVM" = "crosshatch"
+    )
+  )
+
+ggsave(
+  "Figures/coarseGrainedSummary.png",
+  width = 2500,
+  height = 1250,
+  units = "px"
+)
 
 ##### LABELS #####
 
