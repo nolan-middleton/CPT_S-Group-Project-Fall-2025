@@ -65,6 +65,8 @@ The challenges posed by RNA-seq data, particularly the low sample sizes and the 
 
 Nine human datasets from the GEO (\url{https://www.ncbi.nlm.nih.gov/sites/GDSbrowser}) were surveyed to assess the generalizability of our findings across RNA-seq datasets (Tables \ref{datasets-details}, \ref{datasets-table}). The datasets were chosen to encompass a wide range of different sample sizes, number of class labels, and number of features. The most limiting case is the MDG dataset, which as only 36 data points in 12625 dimensions \cite{MDG_paper}. Additionally, the SCLC dataset has 130 data points with six classes that are all similar, each describing a different stage of lung cancer, and poses a challenging classification problem \cite{SCLC_paper}.
 
+The datasets were downloaded as ``full'' SOFT files (text files) from the GEO. Gene expression values were extracted and stored in a tab-delimited tabular format. Features corresponding to sequencing platform controls were removed from consideration.
+
 \begin{table}
 	\caption{Datasets utilized}
 	\label{datasets-details}
