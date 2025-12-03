@@ -3,3 +3,10 @@ Data/
 *.soft
 __pycache__/
 *.tsv
+
+Report.aux
+Report.bbl
+Report.blg
+Report.log
+Report.out
+Report.synctex.gz

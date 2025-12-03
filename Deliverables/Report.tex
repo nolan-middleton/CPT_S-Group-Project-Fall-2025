@@ -1,0 +1,139 @@
+\documentclass{article}
+
+\PassOptionsToPackage{numbers, square, sort&compress}{natbib}
+\usepackage[main, preprint]{neurips_2025}
+
+\bibliographystyle{unsrtnat}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables <- Wrong opinion
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{amsmath} % They didn't include amsmath for some strange reason
+\usepackage{dsfont} % Much nicer blackboard bold font
+\usepackage{tabulary} % For word-wrapping in tables
+
+\title{Survey of Dimensionality Reduction Techniques and their Applications for RNA-seq Data}
+
+\author{%
+	Nels Blair \\
+	Department of Mathematics and Statistics \\
+	\texttt{paul.ola@wsu.edu} \\
+	\And
+	Roya Campos \\
+	School of Biological Sciences \\
+	\texttt{roya.campos@wsu.edu} \\
+	\And
+	Nolan Middleton \\
+	School of Molecular Biosciences \\
+	\texttt{nolan.middleton@wsu.eu} \\
+	\And
+	Paul Ayodeji Ola \\
+	School of Biological Sciences \\
+	\texttt{paul.ola@wsu.edu} \\
+	\And
+	Jehanzeb Saleem \\
+	School of Electrical Engineering and Computer Science \\
+	\texttt{jehanzeb.saleem@wsu.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	Biological data pose many challenges for applying machine learning methods, particularly low sample sizes and high dimensionality due to the large number of features being measured. Low sample sizes make the use of recent deep-learning and generative methods infeasible, and as such simpler models are still widely used. Here, we survey the impact of four dimensionality reduction techniques ({\itshape a priori} aggregation, principle component analysis, kernelized principle component analysis, and nonnegative matrix factorization) on improving the accuracy of five different simple classification algorithms (decision tree, $k$-nearest neighbors, na\"ive Bayes, random forest, and support vector machine) across nine different RNA sequencing datasets from the Gene Expression Omnibus. We find that the impact of dimensionality reduction is highly variable and likely depends on underlying biological context specifics of the dataset. We note that principle component analysis, kernelized principle component analysis, and nonnegative matrix factorization are nearly identical and that the number of reduced dimensions has a much greater impact than the choice of dimensionality reduction method.
+\end{abstract}
+
+\section{Introduction}
+
+Machine learning techniques have been successfully applied to answer biological questions by analyzing a wide variety of biological data, such as analyzing sequence information to identify molecular interactions between RNA molecules \cite{TecLncMir}, analyzing UV damage patterns to identify transcription factor binding sites \cite{CPDTFBS}, and, famously, analyzing structural data to predict protein folding \cite{AlphaFold}. Of particular interest is gene expression data, which reveals how cells are behaving at a molecular level. Within a cell, the information required to perform cellular activities, such as dividing, taking up nutrients, performing metabolic reactions, etc., is stored in the cell's DNA. The DNA is a molecule made from a series of repeating molecular units called nucleotides. There are four different nucleotides used in DNA: adenine (A), cytosine (C), guanine (G), and thymine (T). The information contained in the DNA is encoded in the sequence of nucleotides and is organized into units called genes. Genes are expressed when the cell creates a temporary copy of the gene's nucleotide sequence as a molecule of messenger RNA (mRNA) through a process known as transcription. The RNA molecule is structured similarly to the DNA, consisting of a sequence of the nucleotide bases A, C, G, and U (where U represents uracil, which replaces thymine in RNA for evolutionary and chemical reasons). The mRNA transcript is then translated into a sequence of amino acids which folds into a protein, and the protein's function ultimately confers traits to the organism. Cells very tightly regulate what genes they express and the degree to which they are expressed, and the exact complement of expressed genes determines the cell's behavior, cell type, etc. Numerous diseases, notably cancers, ultimately result from aberrant gene expression. \cite{LewinsGenes}
+
+Perturbations to the cell (i.e. disease or infection) will be alter its gene expression \cite{LewinsGenes}. This begs the question of whether disease state can be inferred from the gene expression, which can be neatly phrased as a classification problem and naturally leads to an exciting application of machine learning techniques. The goal is to gather gene expression data on both diseased and healthy individuals, then train a machine learning model to classify the disease state of individuals. To measure what genes are being expressed by a population of cells, biologists can perform RNA sequencing (RNA-seq), where the RNA is isolated and the exact nucleotide sequences of the isolated RNA molecules are found. Each RNA molecule corresponds to a gene, the identity of which can be deduced from the sequence. The degree to which any given gene is being expressed can then be inferred from the relative abundance of isolated transcripts that correspond to that gene. \cite{RNAseq} The National Institutes of Health has also encouraged researchers to deposit their RNA-seq data on the Gene Expression Omnibus (GEO), available at \url{https://www.ncbi.nlm.nih.gov/sites/GDSbrowser}.
+
+However, like with any biological data, applying machine learning techniques to RNA-seq data poses many challenges. Particularly, the time and cost of conducting biological experiments leads to extremely low sample sizes, especially if the experiment involves human subjects. Additionally, RNA-seq requires the prescription of a set of genes to measure the expression of ahead of time. This results in a wide variety of slightly different methodologies and gene sets, which makes it difficult to meaningfully compare data between RNA-seq datasets or to sensibly combine data across multiple RNA-seq datasets. Often, the expression of tens of thousands of genes are measured, orders of magnitude more than the typical sample size. This results in data with a high dimensionality that far exceeds the number of data points. The advent of single-cell techniques, particularly single-cell RNA sequencing (scRNA-seq), has partially mitigated these problem. scRNA-seq differs from RNA-seq in that, instead of isolating RNA from a population of cells, the RNA is sequenced at the level of individual cells, meaning that every individual cell can act as a separate data point. \cite{scRNAseq} This allows for the collection of large sample sizes, and these data have been successfully used to create pretrained deep-learning models such as scGPT \cite{scGPT}, Tahoe-x1 \cite{TahoeBio}, and CellFM \cite{CellFM}. However, single-cell techniques are expensive, and traditional RNA-seq is still common \cite{barriers}. While pretrained deep-learning models for RNA-seq data, namely BulkRNABert and DCNet \cite{BulkRNABert, DCNet}, these models are trained for specific applications in cancer utilizing data from the cancer genome atlas and expect a fixed set of genes as features for their inputs \cite{BulkRNABert, DCNet, TCGA}, making them unsuitable for applications to general RNA-seq datasets.
+
+The challenges posed by RNA-seq data, particularly the low sample sizes and the lack of a suitable pretrained model, make it infeasible to use modern generative or deep-learning models. As such, simpler machine learning models are still commonly used in biological contexts. However, the high dimensionality of the data still poses a challenge, motivating the application of dimensionality reduction. Here, we conduct a survey of four dimensionality reduction techniques\---{\itshape a priori} aggregation, principle component analysis (PCA), kernelized principle component analysis (kPCA), and nonnegative matrix factorization (NMF)\---and assess their impact on the accuracy of five simple machine learning models\---the decision tree (DT), $k$-nearest neighbors ($k$-NN), the na\"ive Bayes classifier (NB), the random forest (RF), and the support vector machine (SVM)\---in classifying disease state from RNA-seq data across nine different RNA-seq datasets (Tables \ref{datasets-details}, \ref{datasets-table}).
+
+\section{Methods}
+
+\subsection{Datasets}
+
+Nine human datasets from the GEO (\url{https://www.ncbi.nlm.nih.gov/sites/GDSbrowser}) were surveyed to assess the generalizability of our findings across RNA-seq datasets (Tables \ref{datasets-details}, \ref{datasets-table}). The datasets were chosen to encompass a wide range of different sample sizes, number of class labels, and number of features. The most limiting case is the MDG dataset, which as only 36 data points in 12625 dimensions \cite{MDG_paper}. Additionally, the SCLC dataset has 130 data points with six classes that are all similar, each describing a different stage of lung cancer, and poses a challenging classification problem \cite{SCLC_paper}.
+
+\begin{table}
+	\caption{Datasets utilized}
+	\label{datasets-details}
+	\centering
+	\begin{tabulary}{\linewidth}{rlLl}
+		\toprule
+		Abbr. & GEO Accession & Title & Ref. \\
+		\midrule
+		UCC & GDS1615 & Ulcerative colitis and Crohn's disease comparison: peripheral blood mononuclear cells & \cite{UCC_paper} \\
+		SCLC & GDS2373 & Squamous cell lung carcinomas & \cite{SCLC_paper} \\
+		SEC & GDS2771 & Large airway epithelial cells from cigarette smokers with suspect lung cancer & \cite{SEC_paper} \\
+		MDS & GDS3795 & Myelodysplastic syndrome: CD34+ hematopoietic stem cells & \cite{MDS_paper} \\
+		ALL & GDS4206 & Pediatric acute leukemia patients with early relapse: white blood cells & \cite{ALL_paper} \\
+		HIV & GDS4228 & HIV infection and Antiretroviral Therapy effects on mitochondria in various tissues & \cite{HIV_paper} \\
+		JIA & GDS4267 & Systemic juvenile idiopathic arthritis and non-systemic JIA subtypes: peripheral blood mononuclear cells & \cite{JIA_paper} \\
+		GBM & GDS5205 & Long-term adult survivors of glioblastoma: primary tumors & \cite{GBM_paper} \\
+		MDG & GDS963 & Macular degeneration and dermal fibroblast response to sublethal oxidative stress & \cite{MDG_paper} \\
+		\bottomrule
+	\end{tabulary}
+\end{table}
+
+\begin{table}
+	\caption{Dataset parameters}
+	\label{datasets-table}
+	\centering
+	\begin{tabular}{rllll}
+		\toprule
+		&&& \multicolumn{2}{c}{Classes} \\
+		\cmidrule(r){4-5}
+		Abbr. & Samples & Features & Num. & Description \\
+		\midrule
+		UCC & 127 & 22283 & 3 & Normal, ulcerative colitis, Crohn's disease \\
+		SCLC & 130 & 22283 & 6 & Type Ia, Ib, IIa, IIb, IIIa, IIIb \\
+		SEC & 192 & 22283 & 3 & No cancer, suspected cancer, cancer \\
+		MDS & 200 & 54675 & 2 & Healthy, myelodysplastic syndrome \\
+		ALL & 197 & 54675 & 3 & Early, late, no relapse \\
+		HIV & 166 & 4825 & 2 & HIV-negative, HIV-positive\\
+		JIA & 154 & 54675 & 3 & No JIA, systemic JIA, non-systemic JIA \\
+		GBM & 70 & 54675 & 3 & Short-term, intermediate, long-term overall survival \\
+		MDG & 36 & 12625 & 2 & Healthy, macular degeneration \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Models}
+
+Five simple machine learning strategies were surveyed: DT, $k$-NN, NB, RF, and SVM. Many combinations of different values for the model hyperparameters were tested. The DT was pruned to maximum depths of 2, 3, and 4, and features were chosen to split on by optimizing the entropy. The Minkowski distance was used with exponents of $p=1,2,3,4$ for $k$-NN, and values of $k$ were set to 3, 4, and 5. 100, 200, and 500 estimators were used for RF, and the individual estimators were pruned to maximum depths of 2, 3, and 4. The radial basis function (RBF), linear, quadratic, and cubic kernels were tested for the SVM, and values of $C=10^{-3},10^{-2},10^{-1},10^0,10^1,10^2,10^3$ were chosen for the regularization parameter. All models were implemented via \texttt{scikit-learn} \cite{ScikitLearn}.
+
+\subsection{Dimensionality Reduction Strategies}
+
+As a baseline, no dimensionality reduction was applied, and the models were trained on the datasets ``as-is.''
+
+The first dimensionality reduction strategy we applied was aggregation of the data across features based on {\itshape a priori} biological knowledge. Genes do not function independently. For instance, some genes encode transcription factors, which are proteins that alter the expression of other genes, and genes whose products all function as part of the same biological pathway or system are often coregulated. \cite{LewinsGenes} The features of the datasets, which correspond to genes, can be therefore be grouped together based on their biological functionality. Genes are assigned a gene ontology (GO) category by the GO consortium \cite{GO1, GO2}, and the dimensionality of the data is then reduced from $n$, the number of individual genes, to $m$, the number of GO categories. The value corresponding to each GO category is taken to be the mean of the values corresponding to each gene that belongs to that category. There are three different GO categorization schemes that were utilized: component, which corresponds to the subcellular compartment the gene product functions in (e.g. mitochondria, nucleus); function, which corresponds to what the gene product does (e.g. ATP binding, protein binding); and process, which corresponds to what biological pathway the gene product takes part in (e.g. MAPK cascade, inflammatory response).
+
+The other three dimensionality reduction techniques we applied were: PCA, kPCA, and NMF, which are all commonly utilized in biological contexts. Briefly, PCA maintains only the components of the data that account for the highest variation kPCA exploits the fact that PCA can be calculated with only the inner product and utilizes the ``kernel trick'' to introduce nonlinearity, and NMF decomposes the data matrix into two lower-dimensional matrices whose products approximate the original data matrix in a way that, unlike PCA and kPCA, does not re-center the data but can only be approximated (up to 200 iterations were allowed for convergence during implementation). These three techniques were implemented via \texttt{scikit-learn}. \cite{ScikitLearn} The dimension of the datasets were reduced to $d=2,3,4,5,6,7,8,9$ with each of these methods to allow for visualization ($d=2$) and to encompass a range of dimensionalities whilst keeping the dimensionality \char`~one order of magnitude below the number of data points.
+
+\subsection{Assessment and Evaluation}
+
+Due to limited sample sizes, we utilized leave-one-out validation to assess the models. Models were assessed primarily based on their prediction accuracy because of the heterogeneity in the datasets (i.e. the variable number of classes).
+
+\section{Results}
+
+\section{Discussion}
+
+\section{Data and Code Availability}
+
+All the data and code used in this report, as well as supplementary figures and supporting information, are available at \url{https://github.com/nolan-middleton/CPT_S-Group-Project-Fall-2025}.
+
+\newpage
+\bibliography{References}
+
+\end{document}
