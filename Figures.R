@@ -1861,7 +1861,7 @@ ggsave(
 
 ##### A PRIORI GROUPING PLOTS #####
 thisD <- data.frame(
-  cat = chacter(0),
+  cat = character(0),
   dataset = character(0),
   model = character(0),
   accuracy = numeric(0)
@@ -1872,6 +1872,7 @@ for (cat in GO_cats) {
       thisD <- rbind(
         thisD,
         data.frame(
+          cat = cat,
           dataset = dataset,
           model = model,
           accuracy = max(
@@ -1922,6 +1923,307 @@ for (cat in GO_cats) {
     paste0("Figures/Aggr", cat, "Summary.png"),
     width = 2000,
     height = 1000,
+    units = "px"
+  )
+}
+
+thisDiff <- data.frame(
+  cat = character(0),
+  dataset = character(0),
+  model = character(0),
+  diff = numeric(0)
+)
+
+for (cat in unique(thisD$cat)) {
+  for (dataset in unique(thisD$dataset)) {
+    for (model in unique(thisD$model)) {
+      thisDiff <- rbind(
+        thisDiff,
+        data.frame(
+          cat = cat,
+          dataset = dataset,
+          model = model,
+          diff = thisD$accuracy[
+            (thisD$cat == cat) &
+            (thisD$dataset == dataset) &
+            (thisD$model == model)
+          ] - coarse_D$accuracy[
+            (coarse_D$strategy == "No") &
+            (coarse_D$dataset == dataset) &
+            (coarse_D$model == model)
+          ]
+        )
+      )
+    }
+  }
+}
+
+thisDiff$dataset <- factor(
+  thisDiff$dataset,
+  levels = names(datasets)[length(datasets):1]
+)
+
+ggplot(data = thisDiff) +
+  geom_rect(
+    mapping = aes(
+      xmin = stage(cat, after_scale = xmin - 0.5),
+      xmax = stage(cat, after_scale = xmax + 0.5),
+      ymin = stage(dataset, after_scale = ymin - 0.5),
+      ymax = stage(dataset, after_scale = ymax + 0.5),
+      fill = diff
+    ),
+    color = "black"
+  ) +
+  facet_grid(
+    . ~ model,
+    scale = "free_x",
+    space = "free_x"
+  ) +
+  scale_x_discrete(
+    name = "GO Category",
+    expand = c(0.25,0),
+    labels = c("C", "F", "P")
+  ) +
+  scale_y_discrete(
+    name = "Dataset",
+    expand = c(0.075,0)
+  ) +
+  plotTheme +
+  scale_fill_gradient2(
+    name = "Difference\nfrom\nBaseline",
+    low = "red",
+    high = "blue",
+    mid = "white",
+    limits = c(-0.25, 0.1),
+    breaks = c(-0.2, -0.1, 0, 0.1)
+  )
+
+ggsave(
+  "Figures/AggrDiffHeatMap.png",
+  width = 2500,
+  height = 1250,
+  units = "px"
+)
+
+##### PCA, KPCA, AND NMF SUMMARY FIGURES #####
+
+thisD <- data.frame(
+  dim = character(0),
+  dataset = character(0),
+  model = character(0),
+  strategy = character(0),
+  accuracy = numeric(0)
+)
+for (dim in unlist(lapply(2:9, toString))) {
+  for (model in names(D)) {
+    for (dataset in unique(D[[model]]$dataset)) {
+      for (strategy in c("PCA", "Kernelized PCA", "NMF")) {
+        thisD <- rbind(
+          thisD,
+          data.frame(
+            dim = dim,
+            dataset = dataset,
+            model = model,
+            strategy = strategy,
+            accuracy = max(
+              D[[model]]$accuracy[
+                (D[[model]]$strategy == strategy) &
+                (D[[model]]$dim == dim) &
+                (D[[model]]$dataset == dataset)
+              ]
+            )
+          )
+        )
+      }
+    }
+  }
+}
+
+thisD$strategy[thisD$strategy == "Kernelized PCA"] <- "kPCA"
+thisD$model[thisD$model == "DecisionTree"] <- "DT"
+thisD$model[thisD$model == "kNearestNeighbours"] <- "k-NN"
+thisD$model[thisD$model == "NaiveBayes"] <- "NB"
+thisD$model[thisD$model == "RandomForest"] <- "RF"
+thisD$model[thisD$model == "SupportVectorMachine"] <- "SVM"
+
+thisD$dataset <- factor(
+  thisD$dataset,
+  levels = names(datasets)[length(datasets):1]
+)
+
+thisD$strategy <- factor(thisD$strategy, c("PCA", "kPCA", "NMF"))
+
+for (dim in unique(thisD$dim)) {
+  ggplot(data = thisD[thisD$dim == dim,]) +
+    geom_rect(
+      mapping = aes(
+        xmin = stage(strategy, after_scale = xmin - 0.5),
+        xmax = stage(strategy, after_scale = xmax + 0.5),
+        ymin = stage(dataset, after_scale = ymin - 0.5),
+        ymax = stage(dataset, after_scale = ymax + 0.5),
+        fill = accuracy
+      ),
+      color = "black"
+    ) +
+    facet_grid(
+      . ~ model,
+      scale = "free_x",
+      space = "free_x"
+    ) +
+    scale_x_discrete(
+      name = "Dimensionality Reduction Strategy",
+      expand = c(0.25,0)
+    ) +
+    scale_y_discrete(
+      name = "Dataset",
+      expand = c(0.075,0)
+    ) +
+    plotTheme +
+    scale_fill_gradient(
+      name = "Optimal Accuracy",
+      low = "black",
+      high = "white",
+      limits = c(0, 1),
+      breaks = c(0:5 / 5)
+    ) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+    ggtitle(paste0("Reduced Dimension: ", dim))
+  
+  ggsave(
+    paste0("Figures/Linear", dim, "Summary.png"),
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+}
+
+for (strategy in unique(thisD$strategy)) {
+  ggplot(data = thisD[thisD$strategy == strategy,]) +
+    geom_line(
+      mapping = aes(
+        x = strtoi(dim),
+        accuracy,
+        linetype = model,
+        color = model
+      )
+    ) +
+    facet_wrap(
+      . ~ dataset,
+      scales = "free",
+      nrow = 3
+    ) +
+    scale_x_continuous(
+      name = "Reduced Dimension",
+      expand = c(0,0),
+      breaks = 2:9
+    ) +
+    scale_y_continuous(
+      name = "Optimal Accuracy",
+      expand = c(0,0),
+      limits = c(0,1),
+      breaks = 0:5 / 5
+    ) +
+    plotTheme +
+    scale_color_discrete(
+      name = "Model",
+      type = c("black", "black", "red", "red", "blue")
+    ) +
+    scale_linetype_manual(
+      name = "Model",
+      values = c("solid", "dashed", "solid", "dashed", "solid")
+    ) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+    ggtitle(strategy)
+  
+  ggsave(
+    paste0("Figures/", strategy, "Summary.png"),
+    width = 2500,
+    height = 2600,
+    units = "px"
+  )
+}
+
+thisDiff <- data.frame(
+  dim = character(0),
+  strategy = character(0),
+  dataset = character(0),
+  model = character(0),
+  diff = numeric(0)
+)
+
+for (dim in unique(thisD$dim)) {
+  for (dataset in unique(thisD$dataset)) {
+    for (model in unique(thisD$model)) {
+      for (strategy in unique(thisD$strategy)) {
+        thisDiff <- rbind(
+          thisDiff,
+          data.frame(
+            dim = dim,
+            strategy = strategy,
+            dataset = dataset,
+            model = model,
+            diff = thisD$accuracy[
+              (thisD$dim == dim) &
+              (thisD$dataset == dataset) &
+              (thisD$strategy == strategy) &
+              (thisD$model == model)
+            ] - coarse_D$accuracy[
+              (coarse_D$strategy == "No") &
+              (coarse_D$dataset == dataset) &
+              (coarse_D$model == model)
+            ]
+          )
+        )
+      }
+    }
+  }
+}
+
+thisDiff$dataset <- factor(
+  thisDiff$dataset,
+  levels = names(datasets)[length(datasets):1]
+)
+
+for (strategy in unique(thisDiff$strategy)) {
+  ggplot(data = thisDiff[thisDiff$strategy == strategy,]) +
+    geom_rect(
+      mapping = aes(
+        xmin = stage(dim, after_scale = xmin - 0.5),
+        xmax = stage(dim, after_scale = xmax + 0.5),
+        ymin = stage(dataset, after_scale = ymin - 0.5),
+        ymax = stage(dataset, after_scale = ymax + 0.5),
+        fill = diff
+      ),
+      color = "black"
+    ) +
+    facet_grid(
+      . ~ model,
+      scale = "free_x",
+      space = "free_x"
+    ) +
+    scale_x_discrete(
+      name = "Reduced Dimension",
+      expand = c(0.25,0)
+    ) +
+    scale_y_discrete(
+      name = "Dataset",
+      expand = c(0.075,0)
+    ) +
+    plotTheme +
+    scale_fill_gradient2(
+      name = "Difference\nfrom\nBaseline",
+      low = "red",
+      high = "blue",
+      mid = "white",
+      limits = c(-0.45, 0.15),
+      breaks = c(-0.45, -0.3, -0.15, 0, 0.15)
+    ) +
+    ggtitle(strategy)
+  
+  ggsave(
+    paste0("Figures/", strategy, "DiffHeatMap.png"),
+    width = 2500,
+    height = 1250,
     units = "px"
   )
 }
