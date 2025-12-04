@@ -16,6 +16,7 @@
 \usepackage{amsmath} % They didn't include amsmath for some strange reason
 \usepackage{dsfont} % Much nicer blackboard bold font
 \usepackage{tabulary} % For word-wrapping in tables
+\usepackage{graphicx} % They don't include graphicx by default either!
 
 \title{Survey of Dimensionality Reduction Techniques and their Applications for RNA-seq Data}
 
@@ -28,7 +29,7 @@
 	School of Biological Sciences \\
 	\texttt{roya.campos@wsu.edu} \\
 	\And
-	Nolan Middleton \\
+	Nolan Middleton\thanks{Corresponding author: \texttt{nolan.middleton@wsu.edu}} \\
 	School of Molecular Biosciences \\
 	\texttt{nolan.middleton@wsu.eu} \\
 	\And
@@ -123,6 +124,8 @@ The first dimensionality reduction strategy we applied was aggregation of the da
 
 The other three dimensionality reduction techniques we applied were: PCA, kPCA, and NMF, which are all commonly utilized in biological contexts. Briefly, PCA maintains only the components of the data that account for the highest variation kPCA exploits the fact that PCA can be calculated with only the inner product and utilizes the ``kernel trick'' (here, the RBF kernel was used), and NMF decomposes the data matrix into two lower-dimensional matrices whose products approximate the original data matrix in a way that, unlike PCA and kPCA, does not re-center the data but can only be approximated (up to 200 iterations were allowed for convergence during implementation). These three techniques were implemented via \texttt{scikit-learn}. \cite{ScikitLearn} The dimension of the datasets were reduced to $d=2,3,4,5,6,7,8,9$ with each of these methods to allow for visualization ($d=2$) and to encompass a range of dimensionalities whilst keeping the dimensionality \char`~one order of magnitude below the number of data points.
 
+A key disadvantage of the PCA, kPCA, and NMF strategies is that they obscure the original biological context of the features. Initially, the features of the data correspond directly to biologically-tractable information: genes. However, the reduced set of features after applying PCA, kPCA, or NMF no longer correspond to biologically meaningful attributes. In contrast, the {\itshape a priori} aggregation strategy retains biological tractability, as the reduced set of features correspond to gene categories. However, there are a large number ($>1000$) different GO categories in each categorization scheme (component, function, and process), meaning that, unlike PCA, kPCA, and NMF, the dimensionality data after {\itshape a priori} aggregation will remain high compared to the number of data points. Therefore, surveying all four strategies allows for the assessment of what is more important for the performance of simple classification models: retaining biological context or ensuring the dimensionality is small compared to the number of data points.
+
 \subsection{Assessment and Evaluation}
 
 Due to limited sample sizes, we utilized leave-one-out validation to assess the models. Models were assessed primarily based on their prediction accuracy because of the heterogeneity in the datasets (i.e. the variable number of classes).
@@ -131,13 +134,35 @@ Due to limited sample sizes, we utilized leave-one-out validation to assess the 
 
 \subsection{Baseline Performance is Highly Variable Across Datasets}
 
+First, we applied no dimensionality reduction and performed leave-one-out validation to assess the baseline accuracy of the five models on all nine datasets (Fig \ref{baseline-fig}). When the hyperparameters of the model are optimized for the dataset, the performance is highly variable. Unsurprisingly, the accuracy of the models on the SCLC dataset was quite low, not exceeding $40\%$ for any model. In contrast, the performance on the MDS dataset was very high, with every model scoring above $90\%$ leave-one-out validation accuracy with optimal hyperparameters. While the baseline performance was highly variable between datasets, the performance between models was more predictable. Generally, the NB model performed worst or near worst while the SVM performed best or near best (Fig \ref{baseline-fig}).
 
+\begin{figure}
+	\centering
+	\includegraphics[width=\linewidth]{../Figures/BaselineSummary.png}
+	\caption{Baseline performance is highly variable. When no dimensionality reduction is applied to the datasets, the classification accuracy varies heavily between the nine different datasets and between the five different models. For each model, the leave-one-out validation accuracy was computed for every dataset across a combination of hyperparameter values. The optimal accuracy for each model on each dataset is the leave-one-out validation accuracy for the combination of hyperparameter values that resulted in the highest leave-one-out validation accuracy for that model on that dataset.}
+	\label{baseline-fig}
+\end{figure}
+
+\subsection{Impact of {\itshape a priori} Grouping is Highly Variable}
+
+We next performed dimensionality reduction by aggregating the features based on the GO categorization of the genes. We trained the models on the modified datasets and computed the leave-one-out validation accuracy as above, then compared the accuracy on the reduced dataset to the baseline (Fig \ref{aggr-fig}). The impact of this dimensionality reduction strategy was inconsistent across datasets and models. For the DT model in particular, this dimensionality reduction strategy exhibited a wide range of impacts, providing a large improvement in performance on the SCLC dataset, increasing leave-one-out validation accuracy by \~{}$10\%$, but also drastically hindering performance on the MDG dataset, decreasing the accuracy by \~{}$20\%$. In contrast, the performance was largely unaltered on any dataset for the RF model.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\linewidth]{../Figures/AggrDiffHeatMap.png}
+	\caption{{\itshape a priori} aggregation has variable impacts on performance. When the dimensionality of the datasets is reduced by aggregating the data based on GO annotation, the change in classification accuracy from baseline varies heavily between the nine different datasets and between the five different models. For the GO categorization, ``C'' stands for component, ``F'' stands for function, and ``P'' stands for process.}
+	\label{aggr-fig}
+\end{figure}
 
 \section{Discussion}
 
+The high variability in the baseline performance of the models (Fig \ref{baseline-fig}) is expected given the wide range of sample sizes and numbers of classes represented across the nine datasets. The overall poor performance on the SCLC dataset is likely due to the large number of classes (6) within the dataset and because of how similar the classes are to each other: each class describes a different stage of lung cancer progression rather than describing disease vs. healthy states \cite{SCLC_paper}. The high performance on the MDS dataset is also expected, as the MDS dataset has the highest number of data points, 200, and only two classes: a disease state (myelodysplastic syndrome) and a healthy state \cite{MDS_paper}. The NB model assumes that each feature is independent to solve the classification problem. This strong assumption may explain the generally poor baseline performance of the NB model (Fig \ref{baseline-fig}). Since each feature here represents the expression level of a given gene, and because some genes influence the expression of others, assuming independence makes little biological sense. In contrast, the generally good performance of the SVM (Fig \ref{baseline-fig}) also makes sense, as SVMs are known to perform well with limited data in high dimension due to the implicit feature mapping of the kernel \cite{SVM_chapter}.
+
+The inconsistencies in the data aggregation strategy (Fig \ref{aggr-fig}) may be due to underlying biological context. In particular, cancer is a complicated disease that arises from mutations tend to co-occur in genes with similar roles or that belong to the same biological pathway \cite{CancerPaper}, so aggregating the features according to their GO categories may result in a reduced set of features that are more informative for cancer datasets, which can aid the DT model. However, for other datasets, if a very small number of individual genes are important, then taking the mean in the aggregation process may instead obscure important the fine-grain features and instead harm performance. Future experiments could consider different aggregation strategies (e.g. taking the max, geometric mean, etc. instead of the arithmetic mean) or other gene categorization/annotation schemes to explore how to incorporate existing biological knowledge into the dimensionality reduction.
+
 \section{Data and Code Availability}
 
-All the data and code used in this report, as well as supplementary figures and supporting information, are available at \url{https://github.com/nolan-middleton/CPT_S-Group-Project-Fall-2025}.
+All the data and code used in the developing this report, as well as supplementary figures and supporting information, are available at \url{https://github.com/nolan-middleton/CPT_S-Group-Project-Fall-2025}. For questions and concerns, please reach out to Nolan Middleton at \texttt{nolan.middleton@wsu.edu}.
 
 \newpage
 \bibliography{References}

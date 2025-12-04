@@ -1859,6 +1859,73 @@ ggsave(
   units = "px"
 )
 
+##### A PRIORI GROUPING PLOTS #####
+thisD <- data.frame(
+  cat = chacter(0),
+  dataset = character(0),
+  model = character(0),
+  accuracy = numeric(0)
+)
+for (cat in GO_cats) {
+  for (model in names(D)) {
+    for (dataset in unique(D[[model]]$dataset)) {
+      thisD <- rbind(
+        thisD,
+        data.frame(
+          dataset = dataset,
+          model = model,
+          accuracy = max(
+            D[[model]]$accuracy[
+              (D[[model]]$strategy == "Aggregate") &
+              (D[[model]]$dim == cat) &
+              (D[[model]]$dataset == dataset)
+            ]
+          )
+        )
+      )
+    }
+  }
+}
+
+thisD$model[thisD$model == "DecisionTree"] <- "DT"
+thisD$model[thisD$model == "kNearestNeighbours"] <- "k-NN"
+thisD$model[thisD$model == "NaiveBayes"] <- "NB"
+thisD$model[thisD$model == "RandomForest"] <- "RF"
+thisD$model[thisD$model == "SupportVectorMachine"] <- "SVM"
+
+for (cat in GO_cats) {
+  ggplot(data = thisD[thisD$cat == cat,]) +
+    geom_col(
+      mapping = aes(
+        x = factor(dataset, levels = names(datasets)),
+        y = accuracy,
+        fill = model
+      ),
+      position = position_dodge(),
+      color = "black"
+    ) +
+    plotTheme +
+    scale_x_discrete(name = "Dataset", expand = c(0,0)) +
+    scale_y_continuous(
+      name = "Optimal Accuracy",
+      limits = c(0,1),
+      breaks = 0:5/5,
+      expand = c(0,0)
+    ) +
+    scale_fill_discrete(
+      name = "Model",
+      type = c("white", "grey", "black", "red", "blue")
+    ) +
+    ggtitle(paste0("Aggregation by ", cat))
+  
+  ggsave(
+    paste0("Figures/Aggr", cat, "Summary.png"),
+    width = 2000,
+    height = 1000,
+    units = "px"
+  )
+}
+
 ##### LABELS #####
 
 labels <- list()
