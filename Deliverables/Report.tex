@@ -138,7 +138,7 @@ First, we applied no dimensionality reduction and performed leave-one-out valida
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{../Figures/BaselineSummary.png}
+	\includegraphics[width=0.8\linewidth]{../Figures/BaselineSummary.png}
 	\caption{Baseline performance is highly variable. When no dimensionality reduction is applied to the datasets, the classification accuracy varies heavily between the nine different datasets and between the five different models. For each model, the leave-one-out validation accuracy was computed for every dataset across a combination of hyperparameter values. The optimal accuracy for each model on each dataset is the leave-one-out validation accuracy for the combination of hyperparameter values that resulted in the highest leave-one-out validation accuracy for that model on that dataset.}
 	\label{baseline-fig}
 \end{figure}
@@ -149,7 +149,7 @@ We next performed dimensionality reduction by aggregating the features based on 
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{../Figures/AggrDiffHeatMap.png}
+	\includegraphics[width=0.8\linewidth]{../Figures/AggrDiffHeatMap.png}
 	\caption{{\itshape a priori} aggregation has variable impacts on performance. When the dimensionality of the datasets is reduced by aggregating the data based on GO annotation, the change in classification accuracy from baseline varies heavily between the nine different datasets and between the five different models. For the GO categorization, ``C'' stands for component, ``F'' stands for function, and ``P'' stands for process.}
 	\label{aggr-fig}
 \end{figure}
@@ -160,7 +160,7 @@ We next applied PCA, kPCA, and NMF dimensionality reduction. If the reduced dime
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{../Figures/Linear4Summary.png}
+	\includegraphics[width=0.8\linewidth]{../Figures/Linear4Summary.png}
 	\caption{For a fixed dimension ($d=4$ shown here), the choice of dimensionality reduction method between PCA, kPCA, and NMF has little impact on model performance. Here, the optimal leave-one-out validation accuracy for models trained on each reduced dataset via PCA, kPCA, and NMF is reported. For most datasets, the accuracy is large the same regardless of whether PCA, kPCA, or NMF is used.}
 	\label{linear-summary-fig}
 \end{figure}
@@ -178,7 +178,7 @@ In comparison to the baseline performance, the effect of PCA, kPCA, and NMF dime
 
 \begin{figure}
 	\centering
-	\includegraphics[width=\linewidth]{../Figures/PCADiffHeatMap.png}
+	\includegraphics[width=0.8\linewidth]{../Figures/PCADiffHeatMap.png}
 	\caption{For a fixed dimensionality reduction strategy (PCA shown here), the performance of the model in comparison to the baseline performance is variable. The performance of the RF model was not heavily impacted by this dimensionality reduction for most datasets, whereas the NB and SVM were heavily impacted.}
 	\label{PCA-heatmap}
 \end{figure}
@@ -193,19 +193,32 @@ Interestingly, the leave-one-validation accuracy of models trained on datasets r
 
 In contrast to the choice between PCA, kPCA, and NMF, the choice of reduced dimension had a large impact on the leave-one-out validation accuracy (Fig \ref{PCA-summary-fig}). The NB and SVM models in particular were very strongly impacted by the choice of reduced dimension. The maximal leave-one-out validation accuracy was not necessarily achieved on the highest dimension (e.g. the NB model on the HIV dataset or the SVM model on the MDG or UCC datasets), which may be indicative of overfitting, even with as few as $d\leq9$ dimensions. Given the high levels of noise in RNA-seq data \cite{NoisePaper}, this is not surprising: including too many principle components/features may reintroduce some of the noise present in the original dataset, and the models may then overfit to this noise. However, the performance of every model on some datasets, namely the ALL and MDS datasets, were not heavily impacted by the choice of reduced dimension (Fig \ref{PCA-summary-fig}). This may be due to poor spatial separation of the classes (Fig \ref{MDS-ALL-fig}) that may have persisted in up to $d=9$ dimensions. Both of these datasets had higher numbers of data points compared to the other datasets (Table \ref{datasets-table}), and future studies could look into extending the number of reduced dimensions beyond 10 for other similarly-sized datasets.
 
-
-
 \begin{figure}
 	\centering
-	\includegraphics[width=0.49\linewidth]{../Figures/PCA/MDS.png}
-	\includegraphics[width=0.49\linewidth]{../Figures/PCA/PediatricALL.png}
-	\caption{PCA-reduced MDS (left) and ALL (right) datasets.}
+	\includegraphics[width=0.4\linewidth]{../Figures/PCA/MDS.png}
+	\includegraphics[width=0.4\linewidth]{../Figures/PCA/PediatricALL.png}
+	\caption{PCA-reduced MDS (left) and ALL (right) datasets. With fewer dimensions, the data points group together and appear ``well-mixed,'' which may make them difficult to separate.}
 	\label{MDS-ALL-fig}
 \end{figure}
 
+The highly variable impact of PCA, kPCA, and NMF dimensionality reduction on the leave-one-out validation accuracy (Fig \ref{PCA-heatmap}) may also be due to the way the classification models work and the spatial organization of the datasets. The NB model showed improved performance on the SEC and ALL datasets, and this may be because, unlike the individual genes, the principle components or reduced features may behave independently. The DT also saw improved performance on the GBM dataset, and this may be because reducing the dimension to a small number via PCA, kPCA, and NMF reduces the noise present in RNA-seq data \cite{NoisePaper}, which may allow the DT to choose more informative features to split the data on. In contrast, the SVM saw generally lowered performance under PCA, kPCA, and NMF dimensionality reduction across most datasets, and this may be because reducing the dimension may result in data that is more difficult to separate linearly (Fig \ref{MDS-ALL-fig}), especially for datasets with more than two classes. Consistent with this notion, the SVM generally saw improved performance with increased dimension.
+
+\section{Conclusions}
+
+Classifying disease state from human RNA-seq data is a difficult challenge. The lack of large datasets and suitable pretrained models require the use of older, simpler models such as the DT, $k$-NN, NB classifier, RF, and SVM. RNA-seq data is also very high-dimensional, which can hinder the performance of these models. Here, we surveyed four different dimensionality reduction strategies across nine RNA-seq datasets to assess the impact of dimensionality reduction on the performance of five simple machine-learning models commonly used in biology. The wide variety and inconsistency in the datasets make it difficult to draw general conclusions. The impact of dimensionality reduction appears to be highly specific to the dataset, the model being used, and the underlying biological context (Fig \ref{overall-fig}).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\linewidth]{../Figures/DiffHeatMap.png}
+	\caption{Impact of dimensionality reduction on model performance is variable and specific. The change in classification accuracy from baseline varies heavily between the nine different datasets, the five different models, and the four different dimensionality reduction strategies. Here, ``Aggr'' refers to the {\itshape a priori} aggregation strategy, and the accuracies are reported as the optimal accuracy across all reduced dimensions/GO categories for each dimensionality reduction strategy.}
+	\label{overall-fig}
+\end{figure}
+
+The performance of the {\itshape a priori} aggregation strategy is highly variable across datasets and is likely strongly influenced by underlying biological context, while the PCA, kPCA, and NMF methods had mostly similar impacts on model performance across most datasets. kPCA may have a different impact on datasets in limiting cases with few data points and lots of data classes, but the choice of reduced dimension had a much stronger impact than the choice between PCA, kPCA and NMF, however this impact was variable across datasets and models. Together, these results indicate that dimensionality reduction can improve model performance and is a valuable tool for classifying disease states from RNA-seq data. However, it must be used with caution, and a strong understanding of the underlying biological context, spatial organization of the data, and nature of the classification problem (i.e. number of data points, number of data classes, etc.) is needed to inform the choice of dimensionality reduction strategy, optimal classification model to use, and reduced dimension.
+
 \section{Data/Code Availability and Supporting Information}
 
-All the data and code used in the developing this report, as well as supplementary figures and supporting information, are available at \url{https://github.com/nolan-middleton/CPT_S-Group-Project-Fall-2025}. For questions and concerns, please reach out to Nolan Middleton at \texttt{nolan.middleton@wsu.edu}.
+All the data and code used in the developing this report, as well as supplementary figures and supporting information, are available at \url{https://github.com/nolan-middleton/CPT_S-Group-Project-Fall-2025}.
 
 \newpage
 \bibliography{References}
