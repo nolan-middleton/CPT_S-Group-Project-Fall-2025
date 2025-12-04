@@ -1370,7 +1370,7 @@ SVM_fig <- function(plotData, title) {
   P <- ggplot(data = plotData) +
     geom_col(
       mapping = aes(
-        x = factor(kernel, levels = c("rbf", "linear", "quadratic", "cubic")),
+        x = factor(kernel, levels = c("rbf", "linear", "quadratic")),
         y = accuracy,
         fill = as.factor(C)
       ),
@@ -1815,8 +1815,8 @@ ggplot(data = diff_D) +
     low = "red",
     high = "blue",
     mid = "white",
-    limits = c(-0.18, 0.18),
-    breaks = c(-0.15, 0, 0.15)
+    limits = c(-0.33, 0.15),
+    breaks = c(-0.3, -0.15, 0, 0.15)
   )
 
 ggsave(
