@@ -1688,56 +1688,174 @@ coarse_D$model[coarse_D$model == "NaiveBayes"] <- "NB"
 coarse_D$model[coarse_D$model == "RandomForest"] <- "RF"
 coarse_D$model[coarse_D$model == "SupportVectorMachine"] <- "SVM"
 
-ggplot(data = coarse_D) +
-  geom_col_pattern(
+for (model in unique(coarse_D$model)) {
+  ggplot(
+    data = coarse_D[(coarse_D$model == model) & (coarse_D$strategy != "No"),]
+  ) +
+    facet_wrap(
+      . ~ dataset,
+      scales = "free",
+      nrow = 3,
+      ncol = 3
+    ) +
+    geom_col(
+      mapping = aes(
+        x = factor(strategy, levels = c("Aggr", "PCA", "kPCA", "NMF")),
+        y = accuracy
+      ),
+      position = position_dodge2(padding = 0),
+      color = "black",
+      fill = "white"
+    ) +
+    geom_line(
+      data = rbind(
+        coarse_D[(coarse_D$model == model) & (coarse_D$strategy == "No"),],
+        coarse_D[(coarse_D$model == model) & (coarse_D$strategy == "No"),]
+      ),
+      mapping = aes(
+        x = rep(c(-Inf, Inf), each = length(strategy)/2),
+        y = accuracy
+      )
+    ) +
+    plotTheme +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(
+      name = "Optimal Accuracy",
+      breaks = 0:5 / 5,
+      expand = c(0,0),
+      limits = c(0,1)
+    ) +
+    scale_x_discrete(name = "Dimensionality Reduction Strategy") +
+    guides(fill = guide_none()) +
+    ggtitle(model)
+  
+  ggsave(
+    paste0("Figures/coarseGrainedSummary_", model, ".png"),
+    width = 2500,
+    height = 2600,
+    units = "px"
+  )
+}
+
+##### DIFFERENCE FROM BASELINE #####
+
+diff_D <- data.frame(
+  dataset = character(0),
+  strategy = character(0),
+  model = character(0),
+  diff = numeric(0)
+)
+
+for (dataset in unique(coarse_D$dataset)) {
+  for (model in unique(coarse_D$model)) {
+    for (strategy in unique(coarse_D$strategy)) {
+      if (strategy != "No") {
+        diff_D <- rbind(
+          diff_D,
+          data.frame(
+            dataset = dataset,
+            strategy = strategy,
+            model = model,
+            diff = coarse_D$accuracy[
+              (coarse_D$dataset == dataset) &
+              (coarse_D$strategy == strategy) &
+              (coarse_D$model == model)
+            ] - coarse_D$accuracy[
+              (coarse_D$dataset == dataset) &
+              (coarse_D$strategy == "No") &
+              (coarse_D$model == model)
+            ]
+          )
+        )
+      }
+    }
+  }
+}
+
+diff_D$strategy <- factor(
+  diff_D$strategy,
+  levels = c("Aggr", "PCA", "kPCA", "NMF")
+)
+
+diff_D$dataset <- factor(
+  diff_D$dataset,
+  levels = names(datasets)[length(datasets):1]
+)
+
+ggplot(data = diff_D) +
+  geom_rect(
     mapping = aes(
-      x = factor(strategy, levels = c("No", "Aggr", "PCA", "kPCA", "NMF")),
-      y = accuracy,
-      fill = model,
-      pattern = model
+      xmin = stage(strategy, after_scale = xmin - 0.5),
+      xmax = stage(strategy, after_scale = xmax + 0.5),
+      ymin = stage(dataset, after_scale = ymin - 0.5),
+      ymax = stage(dataset, after_scale = ymax + 0.5),
+      fill = diff
     ),
-    position = position_dodge2(padding = 0),
-    color = "black",
-    pattern_fill = "black"
+    color = "black"
   ) +
   facet_grid(
-    . ~ dataset,
-    space = "free_x",
-    scale = "free_x"
+    . ~ model,
+    scale = "free_x",
+    space = "free_x"
+  ) +
+  scale_x_discrete(
+    name = "Dimensionality Reduction Strategy",
+    expand = c(0.25,0)
+  ) +
+  scale_y_discrete(
+    name = "Dataset",
+    expand = c(0.075,0)
   ) +
   plotTheme +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(
-    name = "Optimal Accuracy",
-    breaks = 0:5 / 5,
-    expand = c(0,0)
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
   ) +
-  scale_x_discrete(name = "Dimensionality Reduction Strategy") +
-  scale_fill_manual(
-    name = "Model",
-    values = c(
-      "DT" = "white",
-      "k-NN" = "grey",
-      "NB" = "black",
-      "RF" = "white",
-      "SVM" = "white"
-    )
-  ) +
-  scale_pattern_manual(
-    name = "Model",
-    values = c(
-      "DT" = "none",
-      "k-NN" = "none",
-      "NB" = "none",
-      "RF" = "stripe",
-      "SVM" = "crosshatch"
-    )
+  scale_fill_gradient2(
+    name = "Difference\nfrom\nBaseline",
+    low = "red",
+    high = "blue",
+    mid = "white",
+    limits = c(-0.18, 0.18),
+    breaks = c(-0.15, 0, 0.15)
   )
 
 ggsave(
-  "Figures/coarseGrainedSummary.png",
+  "Figures/DiffHeatMap.png",
   width = 2500,
   height = 1250,
+  units = "px"
+)
+
+##### BASELINE SUMMARY #####
+
+ggplot(data = coarse_D[coarse_D$strategy == "No",]) +
+  geom_col(
+    mapping = aes(
+      x = factor(dataset, levels = names(datasets)),
+      y = accuracy,
+      fill = model
+    ),
+    position = position_dodge(),
+    color = "black"
+  ) +
+  plotTheme +
+  scale_x_discrete(name = "Dataset", expand = c(0,0)) +
+  scale_y_continuous(
+    name = "Optimal Accuracy",
+    limits = c(0,1),
+    breaks = 0:5/5,
+    expand = c(0,0)
+  ) +
+  scale_fill_discrete(
+    name = "Model",
+    type = c("white", "grey", "black", "red", "blue")
+  ) +
+  ggtitle("No Dimensionality Reduction")
+
+ggsave(
+  "Figures/BaselineSummary.png",
+  width = 2000,
+  height = 1000,
   units = "px"
 )
 
@@ -2106,3 +2224,15 @@ make_scatter(
   "Feature 1",
   "Feature 2"
 )
+
+##### SAVE DATA #####
+
+for (model in models) {
+  write.table(
+    D[[model]],
+    file = paste0("Figures/", model, "/DataTable.tsv"),
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+  )
+}

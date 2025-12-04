@@ -165,7 +165,7 @@ for dataset in output_dirs:
     #%%% Strategy 4: Kernelized PCA
     
     print(">>> Strategy 4: Kernelized PCA...")
-    kernel_PCA_solver = KernelPCA(None)
+    kernel_PCA_solver = KernelPCA(None, kernel = "rbf")
     kernel_PCA_solver.fit(plain_X)
     kernel_PCA_X = kernel_PCA_solver.transform(plain_X)
     for dim in components:

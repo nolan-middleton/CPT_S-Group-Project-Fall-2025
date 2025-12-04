@@ -14,7 +14,7 @@ def model_function(training_X, training_Y):
         print("=> k: " + str(k) + "...")
         results[str(k)] = {}
         for p in ps:
-            print("=> p: " + str(p) + "...")
+            print("==> p: " + str(p) + "...")
             results[str(k)][str(p)] = F.leave_one_out_validation(
                 F.train_k_nearest_neighbours,
                 training_X,
