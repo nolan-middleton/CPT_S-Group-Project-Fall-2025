@@ -1822,7 +1822,7 @@ ggplot(data = diff_D) +
 ggsave(
   "Figures/DiffHeatMap.png",
   width = 2500,
-  height = 1250,
+  height = 1000,
   units = "px"
 )
 
@@ -1855,7 +1855,7 @@ ggplot(data = coarse_D[coarse_D$strategy == "No",]) +
 ggsave(
   "Figures/BaselineSummary.png",
   width = 2000,
-  height = 1000,
+  height = 750,
   units = "px"
 )
 
@@ -1922,7 +1922,7 @@ for (cat in GO_cats) {
   ggsave(
     paste0("Figures/Aggr", cat, "Summary.png"),
     width = 2000,
-    height = 1000,
+    height = 750,
     units = "px"
   )
 }
@@ -2000,8 +2000,8 @@ ggplot(data = thisDiff) +
 
 ggsave(
   "Figures/AggrDiffHeatMap.png",
-  width = 2500,
-  height = 1250,
+  width = 2000,
+  height = 750,
   units = "px"
 )
 
@@ -2132,13 +2132,12 @@ for (strategy in unique(thisD$strategy)) {
       name = "Model",
       values = c("solid", "dashed", "solid", "dashed", "solid")
     ) +
-    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
     ggtitle(strategy)
   
   ggsave(
     paste0("Figures/", strategy, "Summary.png"),
-    width = 2500,
-    height = 2600,
+    width = 2000,
+    height = 2000,
     units = "px"
   )
 }
@@ -2203,7 +2202,7 @@ for (strategy in unique(thisDiff$strategy)) {
     ) +
     scale_x_discrete(
       name = "Reduced Dimension",
-      expand = c(0.25,0)
+      expand = c(0.1,0)
     ) +
     scale_y_discrete(
       name = "Dataset",
@@ -2222,8 +2221,8 @@ for (strategy in unique(thisDiff$strategy)) {
   
   ggsave(
     paste0("Figures/", strategy, "DiffHeatMap.png"),
-    width = 2500,
-    height = 1250,
+    width = 2250,
+    height = 1000,
     units = "px"
   )
 }
