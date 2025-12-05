@@ -4,6 +4,8 @@ Data/
 __pycache__/
 *.tsv
 
+*.Rhistory
+
 Report.aux
 Report.bbl
 Report.blg
