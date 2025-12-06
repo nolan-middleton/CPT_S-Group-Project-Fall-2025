@@ -11,6 +11,8 @@ require(rstudioapi)
 require(grid)
 require(ggh4x)
 require(ggpattern)
+require(Hotelling)
+require(gridExtra)
 
 # Directories
 setwd(dirname(getActiveDocumentContext()$path))
@@ -426,7 +428,7 @@ DT_fig <- function(plotData, title) {
       type = c("white", "grey", "black")
     ) +
     scale_x_discrete(
-      name = "Dataset"
+      name = "Sample"
     ) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
     scale_y_continuous(
@@ -527,7 +529,7 @@ ggplot(data = D$DecisionTree[D$DecisionTree$strategy == "PCA",]) +
   ) +
   plotTheme +
   scale_x_continuous(
-    name = "Principle Components",
+    name = "Principal Components",
     breaks = 2:9,
     expand = c(0,0),
     limits = c(2,9)
@@ -567,7 +569,7 @@ ggplot(data = D$DecisionTree[D$DecisionTree$strategy == "Kernelized PCA",]) +
   ) +
   plotTheme +
   scale_x_continuous(
-    name = "Principle Components",
+    name = "Principal Components",
     breaks = 2:9,
     expand = c(0,0),
     limits = c(2,9)
@@ -772,7 +774,7 @@ for (p in unique(D$kNearestNeighbours$p)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -817,7 +819,7 @@ for (p in unique(D$kNearestNeighbours$p)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -898,7 +900,7 @@ NB_fig <- function(plotData, title) {
     ) +
     plotTheme +
     scale_x_discrete(
-      name = "Dataset"
+      name = "Sample"
     ) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
     scale_y_continuous(
@@ -996,7 +998,7 @@ ggplot(data = D$NaiveBayes[D$NaiveBayes$strategy == "PCA",]) +
   ) +
   plotTheme +
   scale_x_continuous(
-    name = "Principle Components",
+    name = "Principal Components",
     breaks = 2:9,
     expand = c(0,0),
     limits = c(2,9)
@@ -1033,7 +1035,7 @@ ggplot(data = D$NaiveBayes[D$NaiveBayes$strategy == "Kernelized PCA",]) +
   ) +
   plotTheme +
   scale_x_continuous(
-    name = "Principle Components",
+    name = "Principal Components",
     breaks = 2:9,
     expand = c(0,0),
     limits = c(2,9)
@@ -1237,7 +1239,7 @@ for (n_estimators in unique(D$RandomForest$n_estimators)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -1284,7 +1286,7 @@ for (n_estimators in unique(D$RandomForest$n_estimators)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -1519,7 +1521,7 @@ for (kernel in unique(D$SupportVectorMachine$kernel)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -1572,7 +1574,7 @@ for (kernel in unique(D$SupportVectorMachine$kernel)) {
     ) +
     plotTheme +
     scale_x_continuous(
-      name = "Principle Components",
+      name = "Principal Components",
       breaks = 2:9,
       expand = c(0,0),
       limits = c(2,9)
@@ -1803,7 +1805,7 @@ ggplot(data = diff_D) +
     expand = c(0.25,0)
   ) +
   scale_y_discrete(
-    name = "Dataset",
+    name = "Sample",
     expand = c(0.075,0)
   ) +
   plotTheme +
@@ -1839,7 +1841,7 @@ ggplot(data = coarse_D[coarse_D$strategy == "No",]) +
     color = "black"
   ) +
   plotTheme +
-  scale_x_discrete(name = "Dataset", expand = c(0,0)) +
+  scale_x_discrete(name = "Sample", expand = c(0,0)) +
   scale_y_continuous(
     name = "Optimal Accuracy",
     limits = c(0,1),
@@ -1906,7 +1908,7 @@ for (cat in GO_cats) {
       color = "black"
     ) +
     plotTheme +
-    scale_x_discrete(name = "Dataset", expand = c(0,0)) +
+    scale_x_discrete(name = "Sample", expand = c(0,0)) +
     scale_y_continuous(
       name = "Optimal Accuracy",
       limits = c(0,1),
@@ -1985,7 +1987,7 @@ ggplot(data = thisDiff) +
     labels = c("C", "F", "P")
   ) +
   scale_y_discrete(
-    name = "Dataset",
+    name = "Sample",
     expand = c(0.075,0)
   ) +
   plotTheme +
@@ -2053,8 +2055,44 @@ thisD$dataset <- factor(
 
 thisD$strategy <- factor(thisD$strategy, c("PCA", "kPCA", "NMF"))
 
+H <- data.frame(
+  dim = character(0),
+  PCAvskPCA = numeric(0),
+  PCAvsNMF = numeric(0),
+  kPCAvsNMF = numeric(0)
+)
+
+Ps <- list()
 for (dim in unique(thisD$dim)) {
-  ggplot(data = thisD[thisD$dim == dim,]) +
+  PCA <- matrix(
+    thisD$accuracy[(thisD$dim == dim) & (thisD$strategy == "PCA")],
+    nrow = 5,
+    byrow = TRUE
+  )
+  
+  kPCA <- matrix(
+    thisD$accuracy[(thisD$dim == dim) & (thisD$strategy == "kPCA")],
+    nrow = 5,
+    byrow = TRUE
+  )
+  
+  NMF <- matrix(
+    thisD$accuracy[(thisD$dim == dim) & (thisD$strategy == "NMF")],
+    nrow = 5,
+    byrow = TRUE
+  )
+  
+  H = rbind(
+    H,
+    data.frame(
+      dim = dim,
+      PCAvskPCA = hotelling.test(t(PCA), t(kPCA))$pval,
+      PCAvsNMF = hotelling.test(t(PCA), t(NMF))$pval,
+      kPCAvsNMF = hotelling.test(t(kPCA), t(NMF))$pval
+    )
+  )
+  
+  Ps[[length(Ps) + 1]] <- ggplot(data = thisD[thisD$dim == dim,]) +
     geom_rect(
       mapping = aes(
         xmin = stage(strategy, after_scale = xmin - 0.5),
@@ -2075,7 +2113,7 @@ for (dim in unique(thisD$dim)) {
       expand = c(0.25,0)
     ) +
     scale_y_discrete(
-      name = "Dataset",
+      name = "Sample",
       expand = c(0.075,0)
     ) +
     plotTheme +
@@ -2091,11 +2129,107 @@ for (dim in unique(thisD$dim)) {
   
   ggsave(
     paste0("Figures/Linear", dim, "Summary.png"),
+    plot = Ps[[length(Ps)]],
     width = 2000,
     height = 1000,
     units = "px"
   )
 }
+
+write.table(
+  H,
+  file = "Figures/HotellingResults.tsv",
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
+
+H$dim <- strtoi(H$dim)
+
+HP <- ggplot(data = H) +
+  geom_rect(
+    mapping = aes(
+      xmin = 0,
+      xmax = 1,
+      ymin = dim - 0.5,
+      ymax = dim + 0.5,
+      fill = -log10(PCAvskPCA)
+    ),
+    color = "white"
+  ) +
+  geom_text(
+    mapping = aes(
+      x = 0.5,
+      y = dim,
+      label = round(-log10(PCAvskPCA), 2)
+    ),
+    color = "white"
+  ) +
+  geom_rect(
+    mapping = aes(
+      xmin = 1,
+      xmax = 2,
+      ymin = dim - 0.5,
+      ymax = dim + 0.5,
+      fill = -log10(PCAvsNMF)
+    ),
+    color = "white"
+  ) +
+  geom_text(
+    mapping = aes(
+      x = 1.5,
+      y = dim,
+      label = round(-log10(PCAvsNMF), 2)
+    ),
+    color = "white"
+  ) +
+  geom_rect(
+    mapping = aes(
+      xmin = 2,
+      xmax = 3,
+      ymin = dim - 0.5,
+      ymax = dim + 0.5,
+      fill = -log10(kPCAvsNMF)
+    ),
+    color = "white"
+  ) +
+  geom_text(
+    mapping = aes(
+      x = 2.5,
+      y = dim,
+      label = round(-log10(kPCAvsNMF), 2)
+    ),
+    color = "white"
+  ) +
+  scale_fill_gradient(
+    name = "-log10(p)",
+    low = "black",
+    high = "white",
+    limits = c(0,2),
+    breaks = c(0, -log10(0.05), 2),
+    labels = c("0", "1.3", "2")
+  ) +
+  plotTheme +
+  scale_x_continuous(
+    expand = c(0,0),
+    name = NULL,
+    breaks = c(0.5, 1.5, 2.5),
+    labels = c("PCA vs. kPCA", "PCA vs. NMF", "kPCA vs. NMF")
+  ) +
+  scale_y_continuous(
+    expand = c(0,0),
+    name = "Reduced Dimension",
+    breaks = 2:9
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(
+  "Figures/HotellingPlot.png",
+  plot = HP,
+  width = 800,
+  height = 1000,
+  units = "px"
+)
 
 for (strategy in unique(thisD$strategy)) {
   ggplot(data = thisD[thisD$strategy == strategy,]) +
@@ -2107,10 +2241,11 @@ for (strategy in unique(thisD$strategy)) {
         color = model
       )
     ) +
-    facet_wrap(
+    facet_wrap2(
       . ~ dataset,
       scales = "free",
-      nrow = 3
+      nrow = 2,
+      ncol = 5
     ) +
     scale_x_continuous(
       name = "Reduced Dimension",
@@ -2132,12 +2267,13 @@ for (strategy in unique(thisD$strategy)) {
       name = "Model",
       values = c("solid", "dashed", "solid", "dashed", "solid")
     ) +
-    ggtitle(strategy)
+    ggtitle(strategy) +
+    theme(legend.position = "inside", legend.position.inside = c(0.85,0.45))
   
   ggsave(
     paste0("Figures/", strategy, "Summary.png"),
     width = 2000,
-    height = 2000,
+    height = 1000,
     units = "px"
   )
 }
@@ -2205,7 +2341,7 @@ for (strategy in unique(thisDiff$strategy)) {
       expand = c(0.1,0)
     ) +
     scale_y_discrete(
-      name = "Dataset",
+      name = "Sample",
       expand = c(0.075,0)
     ) +
     plotTheme +
@@ -2302,7 +2438,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[1]]$title,
       type = c("white", "grey", "black")
-    )
+    ) + ggtitle(names(datasets)[1])
   
   ggsave(
     paste0(dirname, "/", datasets[1], ".png"),
@@ -2334,7 +2470,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
       name = nice_labels[[2]]$title,
       labels = nice_labels[[2]]$labels,
       values = rep(c(21, 22), 3)
-    )
+    ) + ggtitle(names(datasets)[2])
   
   ggsave(
     paste0(dirname, "/", datasets[2], ".png"),
@@ -2360,7 +2496,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[3]]$title,
       type = c("white", "grey", "black")
-    )
+    ) + ggtitle(names(datasets)[3])
   
   ggsave(
     paste0(dirname, "/", datasets[3], ".png"),
@@ -2386,7 +2522,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[4]]$title,
       type = c("white", "black")
-    )
+    ) + ggtitle(names(datasets)[4])
   
   ggsave(
     paste0(dirname, "/", datasets[4], ".png"),
@@ -2412,7 +2548,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[5]]$title,
       type = c("white", "grey", "black")
-    )
+    ) + ggtitle(names(datasets)[5])
   
   ggsave(
     paste0(dirname, "/", datasets[5], ".png"),
@@ -2438,7 +2574,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[6]]$title,
       type = c("white", "black")
-    )
+    ) + ggtitle(names(datasets)[6])
   
   ggsave(
     paste0(dirname, "/", datasets[6], ".png"),
@@ -2464,7 +2600,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[7]]$title,
       type = c("white", "grey", "black")
-    )
+    ) + ggtitle(names(datasets)[7])
   
   ggsave(
     paste0(dirname, "/", datasets[7], ".png"),
@@ -2490,7 +2626,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[8]]$title,
       type = c("white", "grey", "black")
-    )
+    ) + ggtitle(names(datasets)[8])
   
   ggsave(
     paste0(dirname, "/", datasets[8], ".png"),
@@ -2516,7 +2652,7 @@ make_scatter <- function(X, dirname, xlab, ylab) {
     scale_fill_discrete(
       name = nice_labels[[9]]$title,
       type = c("white", "black")
-    )
+    ) + ggtitle(names(datasets)[9])
   
   ggsave(
     paste0(dirname, "/", datasets[9], ".png"),
@@ -2545,8 +2681,8 @@ for (dataset in datasets) {
 make_scatter(
   X,
   "Figures/PCA",
-  "Principle Component 1",
-  "Principle Component 2"
+  "Principal Component 1",
+  "Principal Component 2"
 )
 
 # Kernelized PCA
@@ -2567,8 +2703,8 @@ for (dataset in datasets) {
 make_scatter(
   X,
   "Figures/kernelizedPCA",
-  "Principle Component 1",
-  "Principle Component 2"
+  "Principal Component 1",
+  "Principal Component 2"
 )
 
 # NMF
@@ -2604,3 +2740,4 @@ for (model in models) {
     quote = FALSE
   )
 }
+
