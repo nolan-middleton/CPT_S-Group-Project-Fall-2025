@@ -13,3 +13,6 @@ Report.log
 Report.out
 Report.synctex.gz
 *.pptx
+
+*.png~
+*.kra~
